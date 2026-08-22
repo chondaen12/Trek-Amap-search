@@ -121,6 +121,10 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
+### v1.5.1 (2026-08-22) — Fix coordinate scan timeout
+- `/coord-scan` scanned every trip place in one request; trips with more than a handful of places could exceed the client's request timeout ("Request error: timeout of 8000ms exceeded") before the scan finished
+- Scan is now paginated (`offset`/`limit`, default batch of 6 places per request) — the client loops through batches automatically, showing scan progress, so no single request blocks for long regardless of trip size
+
 ### v1.5.0 (2026-08-22) — One-click coordinate fix
 - New **🛠️ Fix coordinates** button: scans every place already in the trip, re-searches Amap by name to get a fresh GCJ-02→WGS-84 coordinate, and shows a preview list of any place whose stored coordinates drifted more than ~50m (or never had coordinates)
 - Nothing is written automatically — each row shows old vs. new coordinates and the matched Amap result, with a checkbox (unchecked by default when the Amap name match looks uncertain) so you confirm before applying

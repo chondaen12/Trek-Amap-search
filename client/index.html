@@ -659,6 +659,7 @@
 
       // v1.4.1: 坐标修复——扫描行程已有地点，逐个用地点名重新搜索高德比对新旧坐标，预览后确认写入
       let coordFixResults = []  // 最近一次 /coord-scan 结果，供"应用所选"读取
+      let coordScanSeq = 0      // 独立请求序号（不与搜索共用 requestSeq）——面板重开/关闭时使旧扫描循环作废
       const coordFixPanel = document.getElementById('coord-fix-panel')
       const coordFixBody = document.getElementById('coord-fix-body')
 
@@ -722,24 +723,38 @@
         })
       }
 
+      // v1.5.1: 分批扫描——每批只扫 6 个地点，避免行程地点较多时单次请求超过客户端超时
+      const COORD_SCAN_BATCH = 6
       async function openCoordFix() {
         if (!tripId) { trek.notify('error', 'No trip detected'); return }
+        const seq = ++coordScanSeq
         coordFixPanel.style.display = 'block'
-        coordFixBody.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:8px 0"><span class="btn-icon">${ICON_LOADER}</span> Scanning trip places against Amap…</div>`
+        coordFixResults = []
+        let offset = 0
+        let total = null
         try {
-          const res = await trek.invoke('/coord-scan?tripId=' + encodeURIComponent(tripId))
-          if (!res.ok) {
-            coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">${esc(res.error || 'Scan failed')}</div>`
-            return
+          while (true) {
+            coordFixBody.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:8px 0"><span class="btn-icon">${ICON_LOADER}</span> Scanning trip places against Amap… ${total !== null ? `(${Math.min(offset, total)}/${total})` : ''}</div>`
+            const url = '/coord-scan?tripId=' + encodeURIComponent(tripId) + '&offset=' + offset + '&limit=' + COORD_SCAN_BATCH
+            const res = await trek.invoke(url)
+            if (seq !== coordScanSeq) return  // 面板被关闭/重新打开，旧扫描作废
+            if (!res.ok) {
+              coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">${esc(res.error || 'Scan failed')}</div>`
+              return
+            }
+            total = res.total
+            coordFixResults = coordFixResults.concat(res.results || [])
+            if (res.nextOffset === null || res.nextOffset === undefined) break
+            offset = res.nextOffset
           }
-          coordFixResults = res.results || []
           renderCoordFixResults()
         } catch (e) {
+          if (seq !== coordScanSeq) return
           coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">Request error: ${esc(e.message)}</div>`
         }
       }
       document.getElementById('btn-coord-fix').addEventListener('click', openCoordFix)
-      document.getElementById('coord-fix-close').addEventListener('click', () => { coordFixPanel.style.display = 'none' })
+      document.getElementById('coord-fix-close').addEventListener('click', () => { coordScanSeq++; coordFixPanel.style.display = 'none' })
 
       document.getElementById('btn-search').addEventListener('click', doSearch)
       document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch() })

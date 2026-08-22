@@ -109,6 +109,48 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+// 用地点名重新搜索高德，判断该地点坐标是否需要修复（供 /coord-scan 分批调用）
+// 返回 null 表示该地点无需提醒（搜不到 / 无坐标结果 / 新旧坐标相差 <=50m）
+async function scanPlaceCoord(place, key, city) {
+  let data
+  try {
+    const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
+    if (city) params.set('city', city)
+    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`)
+    data = await res.json()
+  } catch {
+    return null
+  }
+  if (String(data.status) !== '1' || !data.pois || !data.pois.length) return null
+  const candidate = data.pois[0]
+  const [gLng, gLat] = String(candidate.location || '').split(',').map(Number)
+  if (!Number.isFinite(gLng) || !Number.isFinite(gLat)) return null
+  const wgs = gcj02ToWgs84(gLng, gLat)
+
+  const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
+  const distanceM = hasOld
+    ? Math.round(distanceMeters(Number(place.lat), Number(place.lng), wgs.lat, wgs.lng))
+    : null
+  // 无旧坐标，或新旧坐标相差 >50m 才值得提醒；候选名与原名完全一致时置信度更高
+  if (hasOld && distanceM <= 50) return null
+  const nameMatch = candidate.name === place.name
+    ? 'exact'
+    : (candidate.name && (candidate.name.includes(place.name) || place.name.includes(candidate.name)) ? 'partial' : 'low')
+
+  return {
+    id: place.id,
+    name: place.name,
+    oldLat: hasOld ? Number(place.lat) : null,
+    oldLng: hasOld ? Number(place.lng) : null,
+    newLat: wgs.lat,
+    newLng: wgs.lng,
+    distanceM,
+    candidateName: candidate.name,
+    candidateAddress: candidate.address || '',
+    nameMatch,
+  }
+}
+
 // 识别行程城市（三级推断，供 /trip-city 与 /coord-scan 复用）
 async function detectTripCity(tripId, ctx) {
   let trips = []
@@ -323,7 +365,9 @@ module.exports = definePlugin({
 
     // 坐标体检：逐个用地点名重新搜索高德，比对现有坐标与搜索结果换算出的 WGS-84 坐标
     // 只返回偏移明显（或原本缺坐标）的地点，交由前端预览确认后再调用 /coord-fix 写入
-    // GET /api/plugins/amap-search/coord-scan?tripId=123
+    // v1.5.1: 按 offset/limit 分批扫描——一次请求扫全部地点在地点较多的行程里会超过客户端 8s 超时，
+    // 改成前端循环拉小批次（默认每批 6 个），累积展示进度，避免整段请求阻塞超时
+    // GET /api/plugins/amap-search/coord-scan?tripId=123&offset=0&limit=6
     {
       method: 'GET',
       path: '/coord-scan',
@@ -333,6 +377,8 @@ module.exports = definePlugin({
         if (!tripId) {
           return json({ ok: false, error: 'Missing tripId' })
         }
+        const offset = Math.max(0, parseInt(req.query && req.query.offset, 10) || 0)
+        const limit = Math.min(20, Math.max(1, parseInt(req.query && req.query.limit, 10) || 6))
         const key = await ctx.settings.get('amap_key')
         if (!key) {
           return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
@@ -347,48 +393,15 @@ module.exports = definePlugin({
         let city = null
         try { city = (await detectTripCity(tripId, ctx)).city } catch {}
 
+        const batch = places.slice(offset, offset + limit)
         const results = []
-        // 逐个请求（不并发），避免瞬时打满高德配额
-        for (const place of places) {
-          let data
-          try {
-            const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
-            if (city) params.set('city', city)
-            const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`)
-            data = await res.json()
-          } catch {
-            continue
-          }
-          if (String(data.status) !== '1' || !data.pois || !data.pois.length) continue
-          const candidate = data.pois[0]
-          const [gLng, gLat] = String(candidate.location || '').split(',').map(Number)
-          if (!Number.isFinite(gLng) || !Number.isFinite(gLat)) continue
-          const wgs = gcj02ToWgs84(gLng, gLat)
-
-          const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
-          const distanceM = hasOld
-            ? Math.round(distanceMeters(Number(place.lat), Number(place.lng), wgs.lat, wgs.lng))
-            : null
-          // 无旧坐标，或新旧坐标相差 >50m 才值得提醒；候选名与原名完全一致时置信度更高
-          if (hasOld && distanceM <= 50) continue
-          const nameMatch = candidate.name === place.name
-            ? 'exact'
-            : (candidate.name && (candidate.name.includes(place.name) || place.name.includes(candidate.name)) ? 'partial' : 'low')
-
-          results.push({
-            id: place.id,
-            name: place.name,
-            oldLat: hasOld ? Number(place.lat) : null,
-            oldLng: hasOld ? Number(place.lng) : null,
-            newLat: wgs.lat,
-            newLng: wgs.lng,
-            distanceM,
-            candidateName: candidate.name,
-            candidateAddress: candidate.address || '',
-            nameMatch,
-          })
+        // 逐个请求（不并发），避免瞬时打满高德配额；每批数量小，单次请求耗时可控
+        for (const place of batch) {
+          const hit = await scanPlaceCoord(place, key, city)
+          if (hit) results.push(hit)
         }
-        return json({ ok: true, city, totalChecked: places.length, results })
+        const nextOffset = offset + limit < places.length ? offset + limit : null
+        return json({ ok: true, city, total: places.length, offset, nextOffset, results })
       },
     },
 
