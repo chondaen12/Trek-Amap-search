@@ -121,19 +121,12 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
-### v1.5.2 (2026-08-22) — Coordinate scan still timing out
-- v1.5.1's batching still timed out: `/coord-scan` re-ran city detection (which itself makes Amap network calls) on *every* batch, so even a small batch could add up to several sequential round-trips per request
-- City is now detected once (on the first batch) and passed back by the client on subsequent batches instead of being re-detected
-- Batch size dropped to 1 place per request (was 6) for the safest possible margin, and each Amap call now has a 6s timeout so a single slow request fails fast instead of hanging the whole scan
-
-### v1.5.1 (2026-08-22) — Fix coordinate scan timeout
-- `/coord-scan` scanned every trip place in one request; trips with more than a handful of places could exceed the client's request timeout ("Request error: timeout of 8000ms exceeded") before the scan finished
-- Scan is now paginated (`offset`/`limit`, default batch of 6 places per request) — the client loops through batches automatically, showing scan progress, so no single request blocks for long regardless of trip size
-
 ### v1.5.0 (2026-08-22) — One-click coordinate fix
 - New **🛠️ Fix coordinates** button: scans every place already in the trip, re-searches Amap by name to get a fresh GCJ-02→WGS-84 coordinate, and shows a preview list of any place whose stored coordinates drifted more than ~50m (or never had coordinates)
 - Nothing is written automatically — each row shows old vs. new coordinates and the matched Amap result, with a checkbox (unchecked by default when the Amap name match looks uncertain) so you confirm before applying
 - New server routes `GET /coord-scan` (preview) and `POST /coord-fix` (apply selected fixes via `ctx.places.update`)
+- Scan is paginated (`offset`/`limit`, default batch of 1 place per request) — the client loops through batches automatically, showing scan progress, so no single request blocks for long regardless of trip size, and each Amap call has a 6s timeout so a single slow request fails fast instead of hanging the whole scan
+- City is detected once (on the first batch) and passed back by the client on subsequent batches instead of being re-detected on every batch
 
 ### v1.4.0 (2026-08-22) — Fully localized to English
 - The plugin's running UI is now fully English: `client/index.html` (title, labels, placeholders, buttons, notifications, empty/error states, welcome guide), server-side error messages returned to the client, and the `trek-plugin.json` manifest (display name **Find Places**, description, `amap_key` setting label/placeholder)

@@ -4,7 +4,7 @@
   "description": "Search Amap (高德地图) POIs right inside TREK — restaurants, sights, hidden gems — and copy details or add them to your trip in one click, with coordinates, map link & phone included automatically.",
   "icon": "Search",
   "author": "imusic-487",
-  "version": "1.5.2",
+  "version": "1.5.0",
   "apiVersion": 1,
   "trek": ">=3.4.0 <4.0.0",
   "type": "trip-page",
