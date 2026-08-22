@@ -87,7 +87,7 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ### 3. Use it
 
-1. Open any trip → the **找地方** tab appears in the planner bar
+1. Open any trip → the **Find Places** tab appears in the planner bar
 2. Type a keyword (e.g. 故宫 / 长城 / 西湖) + optional city → Search
 3. **📋 Copy address** → copies full address / coordinates / map link
 4. **➕ Add to trip** → writes into the open trip (coordinates / address / type / website / phone notes in one step)
@@ -120,6 +120,11 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 - [x] ~~Empty-state copy + retry button + key-hint link~~ (v1.3.15 empty state + retry; v1.3.25 key-hint link)
 
 ## Changelog
+
+### v1.4.0 (2026-08-22) — Fully localized to English
+- The plugin's running UI is now fully English: `client/index.html` (title, labels, placeholders, buttons, notifications, empty/error states, welcome guide), server-side error messages returned to the client, and the `trek-plugin.json` manifest (display name **Find Places**, description, `amap_key` setting label/placeholder)
+- Data-matching strings — the Amap `type`-field regexes used for filtering, the emoji-by-category lookup, and the built-in `CITY_NAMES` list used for city inference — stay in Chinese, since they match text Amap's API always returns in Chinese regardless of UI language
+- Plugin id `amap-search` is unchanged; only the display name changed from 找地方 to **Find Places**
 
 ### v1.3.29 (2026-08-16) — Key step added to first-open guide
 - Users said the 3-step guide didn't say where to get/enter the key: the guide now opens with a highlighted 🔑 block — **TREK Settings → Plugins → 找地方 → enter your Amap Web Service key**, with the free console.amap.com signup link (choose "Web Service" type)

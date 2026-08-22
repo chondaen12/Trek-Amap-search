@@ -152,11 +152,11 @@ module.exports = definePlugin({
         const city = (req.query && req.query.city || '').trim()
         const page = Math.max(1, parseInt(req.query && req.query.page, 10) || 1)
         if (!q) {
-          return json({ ok: false, error: '请输入搜索关键词' })
+          return json({ ok: false, error: 'Please enter a search keyword' })
         }
         const key = await ctx.settings.get('amap_key')
         if (!key) {
-          return json({ ok: false, error: '请先在 设置→插件→高德搜索 里填写高德 Web 服务 Key' })
+          return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
         }
         const params = new URLSearchParams({
           key,
@@ -173,10 +173,10 @@ module.exports = definePlugin({
           const res = await fetch(url)
           data = await res.json()
         } catch (e) {
-          return json({ ok: false, error: `高德请求失败: ${e.message}` })
+          return json({ ok: false, error: `Amap request failed: ${e.message}` })
         }
         if (String(data.status) !== '1') {
-          return json({ ok: false, error: `高德返回错误: ${data.info || data.infocode}` })
+          return json({ ok: false, error: `Amap error: ${data.info || data.infocode}` })
         }
         const pois = (data.pois || []).map(p => {
           // 坐标转换：高德返回 GCJ-02，转成 WGS-84 供 TREK 存储/显示（否则偏移数百米）
@@ -224,7 +224,7 @@ module.exports = definePlugin({
       async handler(req, ctx) {
         const tripId = req.query && req.query.tripId
         if (!tripId) {
-          return json({ ok: false, error: '缺少 tripId' })
+          return json({ ok: false, error: 'Missing tripId' })
         }
         try {
           const places = await ctx.trips.getPlaces(Number(tripId))
@@ -235,7 +235,7 @@ module.exports = definePlugin({
               .map(p => ({ name: p.name, lat: p.lat, lng: p.lng })),
           })
         } catch (e) {
-          return json({ ok: false, error: `读取行程地点失败: ${e.message}` })
+          return json({ ok: false, error: `Failed to read trip places: ${e.message}` })
         }
       },
     },
@@ -249,7 +249,7 @@ module.exports = definePlugin({
       async handler(req, ctx) {
         const tripId = req.query && req.query.tripId
         if (!tripId) {
-          return json({ ok: false, error: '缺少 tripId' })
+          return json({ ok: false, error: 'Missing tripId' })
         }
         try {
           const places = await ctx.trips.getPlaces(Number(tripId))
@@ -261,7 +261,7 @@ module.exports = definePlugin({
             anchor: anchor ? { name: anchor.name, lat: Number(anchor.lat), lng: Number(anchor.lng) } : null,
           })
         } catch (e) {
-          return json({ ok: false, error: `读取行程地点失败: ${e.message}` })
+          return json({ ok: false, error: `Failed to read trip places: ${e.message}` })
         }
       },
     },
@@ -275,7 +275,7 @@ module.exports = definePlugin({
       async handler(req, ctx) {
         const tripId = req.query && req.query.tripId
         if (!tripId) {
-          return json({ ok: false, error: '缺少 tripId' })
+          return json({ ok: false, error: 'Missing tripId' })
         }
         try {
           // L1: 行程标题匹配城市名（最快，零网络）
@@ -303,7 +303,7 @@ module.exports = definePlugin({
           }
           return json({ ok: true, city: null, source: null })
         } catch (e) {
-          return json({ ok: false, error: `识别城市失败: ${e.message}` })
+          return json({ ok: false, error: `Failed to detect city: ${e.message}` })
         }
       },
     },
@@ -318,7 +318,7 @@ module.exports = definePlugin({
         const tripId = req.body && req.body.tripId
         const place = req.body && req.body.place
         if (!tripId || !place || !place.name) {
-          return json({ ok: false, error: '缺少 tripId 或 place' })
+          return json({ ok: false, error: 'Missing tripId or place' })
         }
         const [lng, lat] = String(place.location || '').split(',').map(Number)  // WGS-84，存 TREK 用
         const [gLng, gLat] = String(place.gcj_location || place.location || '').split(',').map(Number)  // GCJ-02，高德链接用
@@ -329,7 +329,7 @@ module.exports = definePlugin({
               ? `https://uri.amap.com/marker?position=${gLng},${gLat}&name=${encodeURIComponent(place.name)}`
               : undefined)
         try {
-          const notes = place.tel ? `📞 电话：${place.tel}` : undefined
+          const notes = place.tel ? `📞 Phone: ${place.tel}` : undefined
           const created = await ctx.places.create(tripId, {
             name: place.name,
             description: place.type || '',
@@ -341,7 +341,7 @@ module.exports = definePlugin({
           })
           return json({ ok: true, place: created })
         } catch (e) {
-          return json({ ok: false, error: `写入失败: ${e.message}` })
+          return json({ ok: false, error: `Failed to add place: ${e.message}` })
         }
       },
     },
@@ -363,7 +363,7 @@ module.exports = definePlugin({
           }))
           return json({ ok: true, trips: list })
         } catch (e) {
-          return json({ ok: false, error: `读取行程失败: ${e.message}` })
+          return json({ ok: false, error: `Failed to read trips: ${e.message}` })
         }
       },
     },

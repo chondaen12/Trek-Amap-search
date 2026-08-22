@@ -1,10 +1,10 @@
 {
   "id": "amap-search",
-  "name": "找地方",
-  "description": "在 TREK 里直接搜遍高德地图——餐厅、景点、宝藏小店都能找，一键复制详情或添加进当前行程，坐标/地图链接/电话自动带上。Search Amap POIs inside TREK & add them to your trip in one click.",
+  "name": "Find Places",
+  "description": "Search Amap (高德地图) POIs right inside TREK — restaurants, sights, hidden gems — and copy details or add them to your trip in one click, with coordinates, map link & phone included automatically.",
   "icon": "Search",
   "author": "imusic-487",
-  "version": "1.3.29",
+  "version": "1.4.0",
   "apiVersion": 1,
   "trek": ">=3.4.0 <4.0.0",
   "type": "trip-page",
@@ -20,8 +20,8 @@
     {
       "key": "amap_key",
       "scope": "user",
-      "label": "高德 Web 服务 Key",
-      "placeholder": "申请自 console.amap.com（Web服务类型）",
+      "label": "Amap Web Service Key",
+      "placeholder": "Get one from console.amap.com (Web Service type)",
       "required": true,
       "secret": true
     }

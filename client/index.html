@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- trek:ui -->
-    <title>找地方</title>
+    <title>Find Places</title>
     <style>
       /* v1.3.16: 修复 trek-select 下拉面板宽度——enhanceSelect 把原生 select 包进 .trek-select-wrap 并隐藏原 select，flex 布局实际作用在 wrap 上；不设宽度则面板(absolute left/right:0 跟随 wrap)只有内容宽(~100px)，“评分 高→低”等长选项被截断 */
       .filter-sort-row .trek-select-wrap { flex: 1; min-width: 150px; }
@@ -93,40 +93,40 @@
   </head>
   <body>
     <div class="trek-card" style="max-width: 720px; margin: 0 auto; padding: 16px">
-      <h2 class="trek-h2" style="margin-top: 0">🗺️ 找地方</h2>
+      <h2 class="trek-h2" style="margin-top: 0">🗺️ Find Places</h2>
 
       <div class="search-row" style="display: flex; gap: 8px; flex-wrap: wrap">
-        <input id="q" class="trek-input" placeholder="搜索关键词，如：故宫 / 长城 / 西湖" style="flex: 2; min-width: 200px" />
+        <input id="q" class="trek-input" placeholder="Search keywords, e.g. Forbidden City / Great Wall / West Lake" style="flex: 2; min-width: 200px" />
         <!-- v1.3.9: 城市输入框外包一层——✨ 自动识别标签常驻可见（直到手动修改） -->
         <div id="city-wrap" style="flex: 1; min-width: 100px; position: relative">
-          <input id="city" class="trek-input" placeholder="城市" style="width: 100%" />
-          <span id="city-auto-tag" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:11px; color:var(--trek-info, #2563eb); pointer-events:none; white-space:nowrap">✨ 自动识别</span>
+          <input id="city" class="trek-input" placeholder="City" style="width: 100%" />
+          <span id="city-auto-tag" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:11px; color:var(--trek-info, #2563eb); pointer-events:none; white-space:nowrap">✨ Auto-detected</span>
         </div>
         <!-- v1.3.22: 修复静态 HTML 里 ${ICON_SEARCH} 不展开显示字面量——内联 lucide search SVG（与 JS 常量一致） -->
         <!-- v1.3.22: 修复静态 HTML 里 ${ICON_SEARCH} 不展开显示字面量——内联 lucide search SVG（与 JS 常量一致） -->
-        <button id="btn-search" class="trek-btn trek-btn--primary"><span class="btn-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span class="btn-label">搜索</span></button>
+        <button id="btn-search" class="trek-btn trek-btn--primary"><span class="btn-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><span class="btn-label">Search</span></button>
       </div>
 
       <!-- v1.3.15: 说明精简为一行，放搜索框与筛选框之间 -->
-      <div style="font-size:11px; opacity:0.65; margin-top:8px">💡 城市自动识别可手动改 · 搜索后可按类型筛选、按评分排序 · 添加后高德链接自动存入「网站」</div>
+      <div style="font-size:11px; opacity:0.65; margin-top:8px">💡 City is auto-detected — edit anytime · Filter by type & sort by rating after searching · Amap link is saved to "Website" when added</div>
 
       <!-- v1.3.2: 筛选 + 排序合并为两个下拉（官方 .trek-select 增强组件，自动升级 listbox） -->
       <!-- v1.3.9: 初始可见（不隐身）+ 类型/排序小标签 + 排序方向标注 -->
       <div class="filter-sort-row" id="filter-sort-row" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center">
-        <span style="font-size:11px; opacity:0.7; flex:none">类型</span>
+        <span style="font-size:11px; opacity:0.7; flex:none">Type</span>
         <select id="filter-select" class="trek-select" style="flex:1; min-width:120px">
-          <option value="all">全部</option>
-          <option value="food">餐饮</option>
-          <option value="sight">景点</option>
-          <option value="shopping">购物</option>
-          <option value="hotel">住宿</option>
-          <option value="other">其他</option>
+          <option value="all">All</option>
+          <option value="food">Food</option>
+          <option value="sight">Sights</option>
+          <option value="shopping">Shopping</option>
+          <option value="hotel">Lodging</option>
+          <option value="other">Other</option>
         </select>
-        <span style="font-size:11px; opacity:0.7; flex:none">排序</span>
+        <span style="font-size:11px; opacity:0.7; flex:none">Sort</span>
         <select id="sort-select" class="trek-select" style="flex:1; min-width:150px">
-          <option value="default">默认</option>
-          <option value="rating">评分 高→低</option>
-          <option value="cost">人均 低→高</option>
+          <option value="default">Default</option>
+          <option value="rating">Rating high→low</option>
+          <option value="cost">Cost low→high</option>
         </select>
       </div>
 
@@ -135,13 +135,13 @@
         <div id="results-list"></div>
         <div id="pager" style="display:none; margin-top: 14px; text-align:center">
           <div id="pager-info" style="font-size:12px; opacity:0.8; margin-bottom:8px"></div>
-          <button id="btn-more" class="trek-btn trek-btn--secondary" style="display:none">加载更多</button>
+          <button id="btn-more" class="trek-btn trek-btn--secondary" style="display:none">Load more</button>
         </div>
       </div>
 
       <div style="margin-top: 14px; padding: 8px 12px; font-size: 12px; opacity: 0.6; border-top: 1px solid var(--trek-border, rgba(128,128,128,0.25))">
-        💡 补充官网/小红书/抖音等链接：编辑地点「备注」，一行一个。
-        <span id="key-hint" style="display:none">🔑 还没有 Key？<a href="https://lbs.amap.com/api/webservice/guide/create-project/get-key" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">前往高德开放平台申请</a>（选择「Web 服务」类型），个人开发者配额 50 万次/天。</span>  <!-- v1.3.25: key-hint 加真实链接 -->
+        💡 To add other links (official site/social media, etc.), edit the place's "Notes" — one per line.
+        <span id="key-hint" style="display:none">🔑 No key yet? <a href="https://lbs.amap.com/api/webservice/guide/create-project/get-key" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">Get one from the Amap Open Platform</a> (choose the "Web Service" type) — free tier: 500,000 calls/day for individual developers.</span>  <!-- v1.3.25: key-hint 加真实链接 -->
       </div>
     </div>
 
@@ -188,18 +188,18 @@
           const res = await trek.invoke('/trip-city?tripId=' + encodeURIComponent(tripId))
           if (res && res.ok && res.city) {
             cityInput.value = res.city
-            cityInput.placeholder = res.city + '（自动识别，可修改）'
+            cityInput.placeholder = res.city + ' (auto-detected, editable)'
             // v1.3.9: ✨ 自动识别标签持续可见（直到用户手动修改）
             if (tag) { tag.style.display = ''; tag.dataset.auto = '1' }
           } else {
-            cityInput.placeholder = '未识别到城市，可手动填写'
+            cityInput.placeholder = 'City not detected — enter manually'
             if (tag) tag.style.display = 'none'
           }
         } catch (e) { /* 忽略，保持现状 */ }
         // v1.3.1: 识别到城市时给一次轻提示（审查 3.5）——v1.3.9: ✨ 标签为主，toast 保留首次提醒
         if (cityInput.dataset.notified !== '1' && cityInput.value) {
           cityInput.dataset.notified = '1'
-          try { trek.notify('info', '已自动识别城市：' + cityInput.value + '，如不正确请更改') } catch (e) {}
+          try { trek.notify('info', 'City auto-detected: ' + cityInput.value + ' — change it if incorrect') } catch (e) {}
         }
       }
 
@@ -241,14 +241,14 @@
         box.innerHTML = `
           <div style="text-align:center; padding:32px 16px">
             <div style="font-size:40px; margin-bottom:10px">🗺️</div>
-            <div style="font-size:14px; font-weight:600; margin-bottom:12px">三步用起来</div>
+            <div style="font-size:14px; font-weight:600; margin-bottom:12px">Get started in 3 steps</div>
             <div style="text-align:left; max-width:300px; margin:0 auto; font-size:12px; line-height:1.8; opacity:0.85">
-              <div style="display:flex; gap:8px; align-items:flex-start; background:rgba(250,204,21,0.12); border:1px solid rgba(250,204,21,0.35); border-radius:8px; padding:8px 10px; margin-bottom:10px"><span style="flex:none">🔑</span><span><b>先填 Key</b>：TREK <b>设置 → 插件 → 找地方</b> → 填「高德 Web 服务 Key」<br>还没 Key？<a href="https://console.amap.com/" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">console.amap.com</a> 免费申请，类型选「Web 服务」</span></div>
-              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">1️⃣</span><span>打开任意行程 → 顶部 tab「找地方」（就是本页）</span></div>
-              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">2️⃣</span><span>输入关键词（如：故宫/长城/西湖），城市自动识别可改</span></div>
-              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">3️⃣</span><span>一键复制地址，或添加进当前行程（坐标/地图链接/电话自动带上）</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start; background:rgba(250,204,21,0.12); border:1px solid rgba(250,204,21,0.35); border-radius:8px; padding:8px 10px; margin-bottom:10px"><span style="flex:none">🔑</span><span><b>Set your key first</b>: TREK <b>Settings → Plugins → Find Places</b> → enter your "Amap Web Service Key"<br>No key? Get one free at <a href="https://console.amap.com/" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">console.amap.com</a> — choose the "Web Service" type</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">1️⃣</span><span>Open any trip → top tab "Find Places" (this page)</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">2️⃣</span><span>Enter a keyword (e.g. Forbidden City/Great Wall/West Lake) — city is auto-detected, editable</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">3️⃣</span><span>Copy the address in one click, or add it to your trip (coordinates/map link/phone included automatically)</span></div>
             </div>
-            <div style="font-size:11px; opacity:0.55; margin-top:14px">💡 在上方输入框输入地点关键词，点「搜索」开始</div>
+            <div style="font-size:11px; opacity:0.55; margin-top:14px">💡 Type a place keyword above and click "Search" to get started</div>
           </div>`
       }
       showWelcomeGuide()
@@ -279,7 +279,7 @@
         const raw = Array.isArray(p.opentime) ? p.opentime.join('；') : String(p.opentime)
         const segs = raw.split(/[；;]/).map(s => s.trim()).filter(Boolean)
         if (!segs.length) return ''
-        return segs.length === 1 ? segs[0] : segs[0] + ' 等' + segs.length + '段'
+        return segs.length === 1 ? segs[0] : segs[0] + ' (+' + (segs.length - 1) + ' more)'
       }
 
       // v1.1: 两点距离（km，Haversine）
@@ -331,7 +331,7 @@
       async function copyText(text) {
         try {
           await navigator.clipboard.writeText(text)
-          trek.notify('success', '已复制：' + text.slice(0, 30) + (text.length > 30 ? '…' : ''))
+          trek.notify('success', 'Copied: ' + text.slice(0, 30) + (text.length > 30 ? '…' : ''))
         } catch (e) {
           const ta = document.createElement('textarea')
           ta.value = text
@@ -339,7 +339,7 @@
           ta.select()
           document.execCommand('copy')
           document.body.removeChild(ta)
-          trek.notify('success', '已复制')
+          trek.notify('success', 'Copied')
         }
       }
 
@@ -385,10 +385,10 @@
               ${open ? `<div style="display:flex; align-items:center; gap:5px; font-size:12px; opacity:0.7; margin-top:1px"><span class="poi-info-icon">${ICON_CLOCK}</span><span>${esc(open)}</span></div>` : ''}
             </div>
             <div class="poi-actions">
-              <button class="trek-btn trek-btn--secondary" data-copy="${i}" title="复制地址" aria-label="复制地址"><span class="btn-icon">${ICON_COPY}</span><span class="btn-label">复制地址</span></button>
+              <button class="trek-btn trek-btn--secondary" data-copy="${i}" title="Copy address" aria-label="Copy address"><span class="btn-icon">${ICON_COPY}</span><span class="btn-label">Copy address</span></button>
               ${addedNames.has(p.name)
-                ? `<button class="trek-btn trek-btn--primary" disabled style="opacity:0.6" title="已在行程中" aria-label="已在行程中"><span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">已在行程</span></button>`
-                : `<button class="trek-btn trek-btn--primary" data-add="${i}" title="添加进行程" aria-label="添加进行程"><span class="btn-icon">${ICON_ADD}</span><span class="btn-label">添加进行程</span></button>`}
+                ? `<button class="trek-btn trek-btn--primary" disabled style="opacity:0.6" title="Already in trip" aria-label="Already in trip"><span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">In trip</span></button>`
+                : `<button class="trek-btn trek-btn--primary" data-add="${i}" title="Add to trip" aria-label="Add to trip"><span class="btn-icon">${ICON_ADD}</span><span class="btn-label">Add to trip</span></button>`}
             </div>
           </div>
         `
@@ -407,7 +407,7 @@
             if (!p) return
             const addr = fullAddress(p)
             const amapLink = p.id ? `https://www.amap.com/place/${p.id}` : ''
-            const text = `${p.name}\n${addr}\n经纬度: ${p.location || '无'}${amapLink ? '\n地图: ' + amapLink : ''}\n类型: ${p.type || ''}${p.tel ? '\n电话: ' + p.tel : ''}${p.rating ? '\n评分: ' + p.rating : ''}${p.cost ? '\n人均: ¥' + p.cost : ''}`
+            const text = `${p.name}\n${addr}\nCoordinates: ${p.location || 'N/A'}${amapLink ? '\nMap: ' + amapLink : ''}\nType: ${p.type || ''}${p.tel ? '\nPhone: ' + p.tel : ''}${p.rating ? '\nRating: ' + p.rating : ''}${p.cost ? '\nCost: ¥' + p.cost : ''}`
             copyText(text)
             return
           }
@@ -415,26 +415,26 @@
           if (addBtn) {
             const poi = renderedPois[Number(addBtn.dataset.add)]
             if (!poi) return
-            if (!tripId) { trek.notify('error', '未检测到当前行程'); return }
-            addBtn.disabled = true; addBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">添加中</span>`; addBtn.setAttribute('aria-label', '添加中')
+            if (!tripId) { trek.notify('error', 'No trip detected'); return }
+            addBtn.disabled = true; addBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">Adding</span>`; addBtn.setAttribute('aria-label', 'Adding')
             try {
               const res = await trek.invoke('/add', {
                 method: 'POST',
                 body: JSON.stringify({ tripId: Number(tripId), place: poi }),
               })
               if (res.ok) {
-                trek.notify('success', `已添加「${poi.name}」到行程`)
+                trek.notify('success', `Added "${poi.name}" to trip`)
                 addedNames.add(poi.name)
-                addBtn.innerHTML = `<span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">已添加</span>`
-                addBtn.setAttribute('aria-label', '已添加')
+                addBtn.innerHTML = `<span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">Added</span>`
+                addBtn.setAttribute('aria-label', 'Added')
                 addBtn.style.opacity = '0.6'
               } else {
-                trek.notify('error', res.error || '添加失败')
-                addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">添加进行程</span>`; addBtn.setAttribute('aria-label', '添加进行程')
+                trek.notify('error', res.error || 'Failed to add')
+                addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">Add to trip</span>`; addBtn.setAttribute('aria-label', 'Add to trip')
               }
             } catch (err) {
-              trek.notify('error', '请求失败: ' + err.message)
-              addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">添加进行程</span>`; addBtn.setAttribute('aria-label', '添加进行程')
+              trek.notify('error', 'Request failed: ' + err.message)
+              addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">Add to trip</span>`; addBtn.setAttribute('aria-label', 'Add to trip')
             }
           }
         })
@@ -462,15 +462,15 @@
         const cityVal = document.getElementById('city').value.trim()
         const filterActive = currentFilter !== 'all' || currentSort !== 'default'
         const btns = []
-        if (filterActive) btns.push('<button class="trek-btn trek-btn--secondary" id="btn-clear-filter">清除筛选</button>')
-        btns.push('<button class="trek-btn trek-btn--secondary" id="btn-new-keyword">换个关键词</button>')
-        if (!cityVal) btns.push('<button class="trek-btn trek-btn--primary" id="btn-pick-city">手动选择城市</button>')
+        if (filterActive) btns.push('<button class="trek-btn trek-btn--secondary" id="btn-clear-filter">Clear filters</button>')
+        btns.push('<button class="trek-btn trek-btn--secondary" id="btn-new-keyword">Try another keyword</button>')
+        if (!cityVal) btns.push('<button class="trek-btn trek-btn--primary" id="btn-pick-city">Choose city manually</button>')
         box.innerHTML = `
           <div style="text-align:center; padding:36px 16px">
             <div style="font-size:44px; margin-bottom:10px">🔍</div>
-            <div style="font-size:14px; font-weight:600; margin-bottom:4px">没找到相关地点</div>
+            <div style="font-size:14px; font-weight:600; margin-bottom:4px">No places found</div>
             <!-- v1.3.25: 文案条件修复——filterActive 时提示清筛选（原错误绑定 cityVal，筛选激活但城市为空时不提示） -->
-            <div style="font-size:12px; opacity:0.65; margin-bottom:14px">试试换个关键词${filterActive ? '，或清除筛选' : (!cityVal ? '，或手动填写城市' : '')}</div>
+            <div style="font-size:12px; opacity:0.65; margin-bottom:14px">Try another keyword${filterActive ? ', or clear filters' : (!cityVal ? ', or enter a city manually' : '')}</div>
             <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap">${btns.join('')}</div>
           </div>`
         const clearBtn = document.getElementById('btn-clear-filter')
@@ -523,12 +523,12 @@
         const loaded = currentPois.length
         pager.style.display = 'block'
         if (totalCount > loaded) {
-          info.textContent = `已加载 ${loaded} / ${totalCount} 条`
+          info.textContent = `Loaded ${loaded} / ${totalCount}`
           more.style.display = ''
           more.disabled = false
-          more.innerHTML = '加载更多'
+          more.innerHTML = 'Load more'
         } else {
-          info.textContent = `共 ${loaded} 条`
+          info.textContent = `${loaded} total`
           more.style.display = 'none'
         }
       }
@@ -539,7 +539,7 @@
         box.innerHTML = `<div style="text-align:center; padding:36px 16px">
           <div style="font-size:40px; margin-bottom:10px">😵</div>
           <div style="color:var(--trek-danger,#ef4444); margin-bottom:14px">${msg}</div>
-          <button class="trek-btn trek-btn--primary" id="btn-retry">重试</button>
+          <button class="trek-btn trek-btn--primary" id="btn-retry">Retry</button>
         </div>`
         const retry = document.getElementById('btn-retry')
         if (retry) retry.addEventListener('click', () => doSearch())
@@ -555,12 +555,12 @@
         if (!q) return
         currentPage++
         more.disabled = true
-        more.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">加载中</span>`
+        more.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">Loading</span>`
         try {
           const url = '/search?q=' + encodeURIComponent(q) + (city ? '&city=' + encodeURIComponent(city) : '') + '&page=' + currentPage
           const data = await trek.invoke(url)
           if (seq !== requestSeq) return
-          if (!data.ok) { trek.notify('error', data.error || '加载失败'); currentPage--; return }
+          if (!data.ok) { trek.notify('error', data.error || 'Failed to load'); currentPage--; return }
           const newPois = data.pois || []
           currentPois = currentPois.concat(newPois)
           // v1.3.15: 增量追加——默认视图直接 append 新卡片（事件委托已绑无需重绑），不再整页重建；筛选/排序激活时顺序会变，走全量重建
@@ -574,17 +574,17 @@
           updatePager()
         } catch (e) {
           if (seq !== requestSeq) return
-          trek.notify('error', '请求异常: ' + e.message)
+          trek.notify('error', 'Request error: ' + e.message)
           currentPage--
         } finally {
-          if (seq === requestSeq) { more.disabled = false; more.innerHTML = '加载更多' }
+          if (seq === requestSeq) { more.disabled = false; more.innerHTML = 'Load more' }
         }
       }
 
       async function doSearch() {
         const q = document.getElementById('q').value.trim()
         const city = document.getElementById('city').value.trim()
-        if (!q) { trek.notify('warning', '请输入关键词'); return }
+        if (!q) { trek.notify('warning', 'Please enter a keyword'); return }
         const box = document.getElementById('results-list')   // v1.3.10: 重建区 = results-list（pager 是 #results 静态子元素，不受影响）
         const btn = document.getElementById('btn-search')
         const seq = ++requestSeq
@@ -592,7 +592,7 @@
         // v1.3.1: 加载反馈——按钮只显示转圈 icon + 轻提示 + 骨架屏（取消按钮已移除）
         btn.disabled = true
         btn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span>`
-        trek.notify('info', '搜索中…')
+        trek.notify('info', 'Searching…')
         showSkeleton(box)
         try {
           const url = '/search?q=' + encodeURIComponent(q) + (city ? '&city=' + encodeURIComponent(city) : '') + '&page=' + currentPage
@@ -601,7 +601,7 @@
           if (!data.ok) {
             if (/key|Key|key/i.test(data.error || '')) { refreshKeyHint(false) }
             // v1.3.15: 错误状态加重试按钮
-            showErrorState(data.error || '搜索失败')
+            showErrorState(data.error || 'Search failed')
             return
           }
           refreshKeyHint(true)
@@ -624,11 +624,11 @@
         } catch (e) {
           if (seq !== requestSeq) return
           // v1.3.15: 错误状态加重试按钮
-          showErrorState('请求异常: ' + e.message)
+          showErrorState('Request error: ' + e.message)
         } finally {
           if (seq === requestSeq) {
             btn.disabled = false
-            btn.innerHTML = `<span class="btn-icon">${ICON_SEARCH}</span><span class="btn-label">搜索</span>`
+            btn.innerHTML = `<span class="btn-icon">${ICON_SEARCH}</span><span class="btn-label">Search</span>`
           }
         }
       }
