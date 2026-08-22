@@ -121,6 +121,12 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
+### v1.5.2 (2026-08-22) — Coordinate fix: stop matching the wrong same-named place
+- Reported issue: "Fix coordinates" sometimes swapped a place's coordinates for a *different* place that happened to share its name (a chain branch, a same-named spot in another district) — the scan searched Amap by keyword only and trusted whatever result came back first
+- When the place already has coordinates, the scan now does a proximity search around those coordinates (5km radius, sorted by distance) instead of a blind keyword search, so a same-named result far from where the place actually is won't be picked
+- Among the returned candidates, an exact or partial name match is now preferred over just taking the first result, for both the proximity search and the keyword-only search (used when a place has no coordinates yet)
+- If no matching name is found within range, the place is skipped rather than fixed with a guess — conservative by design, consistent with the rest of the preview-then-confirm flow
+
 ### v1.5.1 (2026-08-22) — Coordinate scan: tighter timeout budget + concurrent batches
 - Still-reported `Request error: timeout of 8000ms exceeded` root cause: the 6s per-Amap-call timeout left too little headroom under the client's 8s request timeout once city detection (on the first batch) and the scan call were counted together — reduced to 4s per Amap call so a full batch reliably finishes within the client's window
 - `/coord-scan` batches now scan concurrently instead of one place at a time — a batch's time is bounded by its slowest single request, not the sum of all of them

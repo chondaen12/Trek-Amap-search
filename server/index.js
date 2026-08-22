@@ -111,23 +111,44 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
 
 // 用地点名重新搜索高德，判断该地点坐标是否需要修复（供 /coord-scan 分批调用）
 // 返回 null 表示该地点无需提醒（搜不到 / 无坐标结果 / 新旧坐标相差 <=50m）
+// v1.5.2: 重名地点（连锁店、同名景点分布在不同城市/城区）纯关键字搜索经常把结果排到别的分店，
+// "修复坐标"却把地点换到了不相关的地方。已有旧坐标时改用"周边搜索"（围绕旧坐标 5km 内按距离排序），
+// 并在候选列表里优先挑名称对得上的那条，而不是盲目相信排第一的结果
 async function scanPlaceCoord(place, key, city) {
+  const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
   let data
   try {
-    const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
-    if (city) params.set('city', city)
-    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(4000) })
-    data = await res.json()
+    if (hasOld) {
+      const gcj = wgs84ToGcj02(Number(place.lng), Number(place.lat))
+      const params = new URLSearchParams({
+        key,
+        keywords: place.name,
+        location: `${gcj.lng},${gcj.lat}`,
+        radius: '5000',
+        sortrule: 'distance',
+        offset: '10',
+        page: '1',
+      })
+      const res = await fetch(`https://restapi.amap.com/v3/place/around?${params}`, { signal: AbortSignal.timeout(4000) })
+      data = await res.json()
+    } else {
+      const params = new URLSearchParams({ key, keywords: place.name, offset: '10', page: '1' })
+      if (city) params.set('city', city)
+      const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(4000) })
+      data = await res.json()
+    }
   } catch {
     return null
   }
   if (String(data.status) !== '1' || !data.pois || !data.pois.length) return null
-  const candidate = data.pois[0]
+  // 候选列表按名称匹配优先排序（around 按距离排、text 按相关度排，两者都可能把重名的别处结果排最前）
+  const candidate = data.pois.find(p => p.name === place.name)
+    || data.pois.find(p => p.name && (p.name.includes(place.name) || place.name.includes(p.name)))
+    || data.pois[0]
   const [gLng, gLat] = String(candidate.location || '').split(',').map(Number)
   if (!Number.isFinite(gLng) || !Number.isFinite(gLat)) return null
   const wgs = gcj02ToWgs84(gLng, gLat)
 
-  const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
   const distanceM = hasOld
     ? Math.round(distanceMeters(Number(place.lat), Number(place.lng), wgs.lat, wgs.lng))
     : null
