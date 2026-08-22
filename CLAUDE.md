@@ -36,5 +36,5 @@ Two files carry all the logic:
 
 - Keep the plugin's declared `permissions`/`egress` in `trek-plugin.json` minimal and in sync with what `server/index.js` actually does — the plugin only ever talks to `restapi.amap.com`, and TREK shows these permissions to admins on activation.
 - Comments and commit-worthy documentation in this codebase are written in Chinese; match that style when editing `server/index.js` / `client/index.html`.
-- `README.md` (Chinese, primary) and `README.en.md` (English) must be kept in sync, including the versioned changelog (`更新日志`) at the bottom of `README.md`, which is the authoritative history of behavior changes — check it before assuming why something is implemented a certain way (e.g. why distance sort is disabled, why certain fields were removed from cards).
+- `README.md` (English, primary) and `README.zh.md` (Chinese) must be kept in sync, including the versioned changelog at the bottom of each, which is the authoritative history of behavior changes — check it before assuming why something is implemented a certain way (e.g. why distance sort is disabled, why certain fields were removed from cards).
 - Bump `version` in both `trek-plugin.json` and `package.json` together when releasing, and add a changelog entry in `README.md`.
