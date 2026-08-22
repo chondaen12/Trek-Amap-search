@@ -109,20 +109,31 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+// 从地点名里提取最长的连续中文片段（高德库以中文为主，中英混排/纯英文名直接拿去搜命中率很低）
+// 无中文片段（纯英文名等）时返回 null，调用方原样退回用整个 place.name 搜索
+function extractChineseName(name) {
+  const matches = String(name || '').match(/[一-鿿]+/g)
+  if (!matches || !matches.length) return null
+  return matches.reduce((a, b) => (b.length > a.length ? b : a))
+}
+
 // 用地点名重新搜索高德，判断该地点坐标是否需要修复（供 /coord-scan 分批调用）
 // 返回 null 表示该地点无需提醒（搜不到 / 无坐标结果 / 新旧坐标相差 <=50m）
 // v1.5.2: 重名地点（连锁店、同名景点分布在不同城市/城区）纯关键字搜索经常把结果排到别的分店，
 // "修复坐标"却把地点换到了不相关的地方。已有旧坐标时改用"周边搜索"（围绕旧坐标 5km 内按距离排序），
 // 并在候选列表里优先挑名称对得上的那条，而不是盲目相信排第一的结果
+// v1.5.3: 地点名优先取其中的中文片段去搜——高德库以中文为主，中英混排/音译名直接搜命中率低，
+// 没有中文片段（纯英文名）时才退回用完整 place.name 搜索
 async function scanPlaceCoord(place, key, city) {
   const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
+  const keywords = extractChineseName(place.name) || place.name
   let data
   try {
     if (hasOld) {
       const gcj = wgs84ToGcj02(Number(place.lng), Number(place.lat))
       const params = new URLSearchParams({
         key,
-        keywords: place.name,
+        keywords,
         location: `${gcj.lng},${gcj.lat}`,
         radius: '5000',
         sortrule: 'distance',
@@ -132,7 +143,7 @@ async function scanPlaceCoord(place, key, city) {
       const res = await fetch(`https://restapi.amap.com/v3/place/around?${params}`, { signal: AbortSignal.timeout(4000) })
       data = await res.json()
     } else {
-      const params = new URLSearchParams({ key, keywords: place.name, offset: '10', page: '1' })
+      const params = new URLSearchParams({ key, keywords, offset: '10', page: '1' })
       if (city) params.set('city', city)
       const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(4000) })
       data = await res.json()

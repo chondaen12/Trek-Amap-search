@@ -121,6 +121,10 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
+### v1.5.3 (2026-08-22) — Coordinate fix: search by the Chinese name first
+- Amap's database is Chinese-first; a place name that's bilingual ("Forbidden City 故宫") or fully English/pinyin searched as-is against Amap often missed or matched poorly
+- `/coord-scan` now extracts the longest Chinese-character run from the place name and searches Amap with that instead of the full name — e.g. "Forbidden City 故宫" searches as "故宫"; a fully English/pinyin name (no Chinese characters) falls back to searching the full name as before
+
 ### v1.5.2 (2026-08-22) — Coordinate fix: stop matching the wrong same-named place
 - Reported issue: "Fix coordinates" sometimes swapped a place's coordinates for a *different* place that happened to share its name (a chain branch, a same-named spot in another district) — the scan searched Amap by keyword only and trusted whatever result came back first
 - When the place already has coordinates, the scan now does a proximity search around those coordinates (5km radius, sorted by distance) instead of a blind keyword search, so a same-named result far from where the place actually is won't be picked
