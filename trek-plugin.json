@@ -39,6 +39,33 @@
       ],
       "hint": "Higher values scan faster but send more simultaneous requests to Amap — lower this if your key hits rate limits.",
       "required": false
+    },
+    {
+      "key": "coord_scan_proximity",
+      "scope": "user",
+      "label": "Fix coordinates: search near existing coordinates first",
+      "input_type": "select",
+      "options": [
+        { "value": "on", "label": "On (default) — search near the place's current coordinates" },
+        { "value": "off", "label": "Off — search by name only, like a plain Amap keyword search" }
+      ],
+      "hint": "Prevents same-named places elsewhere (chain branches, same-named spots in another district) from being picked when a place already has coordinates.",
+      "required": false
+    },
+    {
+      "key": "coord_scan_radius",
+      "scope": "user",
+      "label": "Fix coordinates: search radius around existing coordinates (meters)",
+      "input_type": "select",
+      "options": [
+        { "value": "1000", "label": "1000m" },
+        { "value": "3000", "label": "3000m" },
+        { "value": "5000", "label": "5000m (default)" },
+        { "value": "10000", "label": "10000m" },
+        { "value": "20000", "label": "20000m" }
+      ],
+      "hint": "Only used when the setting above is On. Places with no matching result within this radius are skipped rather than fixed with a guess.",
+      "required": false
     }
   ]
 }

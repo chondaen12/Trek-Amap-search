@@ -129,6 +129,7 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 - Reported issue: "Fix coordinates" sometimes swapped a place's coordinates for a *different* place that happened to share its name (a chain branch, a same-named spot in another district) — the scan searched Amap by keyword only and trusted whatever result came back first
 - When the place already has coordinates, the scan now does a proximity search around those coordinates (5km radius, sorted by distance) instead of a blind keyword search, so a same-named result far from where the place actually is won't be picked
 - Among the returned candidates, an exact or partial name match is now preferred over just taking the first result, for both the proximity search and the keyword-only search (used when a place has no coordinates yet)
+- Now configurable: two new settings, **Fix coordinates: search near existing coordinates first** (`coord_scan_proximity`, on/off, default on) and **Fix coordinates: search radius around existing coordinates** (`coord_scan_radius`, 1000-20000m, default 5000m) — turn proximity search off to fall back to a plain keyword search, or tune the radius
 - If no matching name is found within range, the place is skipped rather than fixed with a guess — conservative by design, consistent with the rest of the preview-then-confirm flow
 
 ### v1.5.1 (2026-08-22) — Coordinate scan: tighter timeout budget + concurrent batches

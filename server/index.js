@@ -124,18 +124,22 @@ function extractChineseName(name) {
 // 并在候选列表里优先挑名称对得上的那条，而不是盲目相信排第一的结果
 // v1.5.3: 地点名优先取其中的中文片段去搜——高德库以中文为主，中英混排/音译名直接搜命中率低，
 // 没有中文片段（纯英文名）时才退回用完整 place.name 搜索
-async function scanPlaceCoord(place, key, city) {
+// proximityRadius: 围绕旧坐标搜索的半径（米）；传 0/false 关闭周边搜索、始终用关键字搜索——
+// 两者均由用户在设置里的 coord_scan_proximity/coord_scan_radius 决定，供不放心 around 接口
+// 或希望搜索范围更小/更大的用户自行调整
+async function scanPlaceCoord(place, key, city, proximityRadius) {
   const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
+  const useProximity = hasOld && proximityRadius > 0
   const keywords = extractChineseName(place.name) || place.name
   let data
   try {
-    if (hasOld) {
+    if (useProximity) {
       const gcj = wgs84ToGcj02(Number(place.lng), Number(place.lat))
       const params = new URLSearchParams({
         key,
         keywords,
         location: `${gcj.lng},${gcj.lat}`,
-        radius: '5000',
+        radius: String(proximityRadius),
         sortrule: 'distance',
         offset: '10',
         page: '1',
@@ -402,6 +406,8 @@ module.exports = definePlugin({
     // v1.5.3: 每批内部并发扫描（而非逐个 await），批大小由用户在设置里配置的
     // coord_scan_concurrency 决定（服务端夹紧到 1-5），而不是由客户端传入的 limit 决定，
     // 避免用户端传任意大小打满高德配额或拖垮单次请求耗时
+    // v1.5.2 的"周边搜索"现由 coord_scan_proximity（开关）与 coord_scan_radius（半径，米）两个设置
+    // 控制，默认保持 v1.5.2 引入时的行为（开启，5km）
     // GET /api/plugins/amap-search/coord-scan?tripId=123&offset=0
     {
       method: 'GET',
@@ -414,6 +420,12 @@ module.exports = definePlugin({
         }
         const offset = Math.max(0, parseInt(req.query && req.query.offset, 10) || 0)
         const concurrency = Math.min(5, Math.max(1, parseInt(await ctx.settings.get('coord_scan_concurrency'), 10) || 3))
+        // 已有坐标时是否改用"周边搜索"（而非纯关键字搜索），以及周边搜索的半径——均可在设置里关闭/调整，
+        // 默认沿用 v1.5.2 引入时的行为（开启，5km）
+        const proximityEnabled = (await ctx.settings.get('coord_scan_proximity')) !== 'off'
+        const proximityRadius = proximityEnabled
+          ? Math.min(20000, Math.max(200, parseInt(await ctx.settings.get('coord_scan_radius'), 10) || 5000))
+          : 0
         const key = await ctx.settings.get('amap_key')
         if (!key) {
           return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
@@ -438,7 +450,7 @@ module.exports = definePlugin({
         const batch = places.slice(offset, offset + concurrency)
         // v1.5.3: 批内并发请求高德——单批耗时取决于批内最慢的一次请求，而不是所有请求耗时相加,
         // 让 concurrency > 1 时也能稳稳落在客户端超时窗口内
-        const hits = await Promise.all(batch.map(place => scanPlaceCoord(place, key, city)))
+        const hits = await Promise.all(batch.map(place => scanPlaceCoord(place, key, city, proximityRadius)))
         const results = hits.filter(Boolean)
         const nextOffset = offset + concurrency < places.length ? offset + concurrency : null
         return json({ ok: true, city, total: places.length, offset, nextOffset, results })
