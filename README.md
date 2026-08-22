@@ -1,292 +1,226 @@
 # 🗺️ 找地方 (amap-search)
 
-简体中文 | [English](README.en.md)
-
-在 TREK 里直接搜遍高德地图——餐厅、景点、宝藏小店都能找，一键复制详情或添加进当前行程，坐标/地图链接/电话自动带上。
+[简体中文](README.zh.md) | English
 
 Search Amap POIs right inside TREK — find restaurants, sights & hidden gems, copy details or add them to your current trip with coordinates, map link & phone in one click.
 
-![找地方 — cover](docs/cover.jpg)
+在 TREK 里直接搜遍高德地图——餐厅、景点、宝藏小店都能找，一键复制详情或添加进当前行程，坐标/地图链接/电话自动带上。
 
-## What it does · 功能
+![找地方 / Amap Search — cover](docs/cover.jpg)
 
-**找地方** 以 **trip-page** 类型挂在行程规划器内部（TREK 3.4+），始终跟随当前打开的行程。搜索高德上的任意地点，然后复制详情或直接写进行程。
+## What it does
 
-- 🗺️ **高德 POI 关键字搜索**（可指定城市，不填则自动识别行程城市；识别不到再全国搜索）
-- 🏙️ **城市自动识别**（v1.1.5）：行程标题匹配内置城市列表 → 首个有坐标地点反查 → 地址解析，三级推断当前行程城市，无需手动填
-- 📐 **坐标自动转换**（v1.1.5）：高德返回 GCJ-02（火星坐标）→ 自动转成 WGS-84 存进 TREK，地图上位置不再偏移约 500 米
-- 📋 **复制地址**：一键复制 名称 / 完整地址（中国·省·市·区·街道）/ 经纬度 / 地图链接 / 类型 / 电话
-- ➕ **添加进行程**：写入当前行程，自动带上：
-  - **坐标**（经纬度，已转 WGS-84）
-  - **地址**
-  - **类型 → 描述**
-  - **高德地图链接 → 「网站」字段**（点击地点卡片的"打开链接"跳转高德）
-  - **电话 → 「备注」字段**（另起一行）
-- 🔀 **结果排序**（v1.1.0）：评分 / 人均 / 默认，纯客户端排序（距离排序已屏蔽：SDK 无「选中地点」事件，v1.3.2 起；距离从卡片删除 v1.3.17）
-- 🖥️ **响应式按钮列**（v1.1.6）：移动端复制/添加按钮并排带文字；网页端（≥641px）按钮垂直排列在卡片右侧、只显示图标（Lucide Copy / Plus，悬停有提示）
-- 🔑 **每个用户自己填高德 Key**（设置 → 插件，加密存储，不进代码）
-- 💡 **Key 引导语智能显隐**：没填 Key 时显示申请引导，填好或搜索成功后自动隐藏
+**找地方** mounts as a tab **inside the trip planner** (a `trip-page`, TREK 3.4+), always scoped to the trip you are viewing. Search any POI on Amap — China's Gaode Maps — then copy the details or drop the place straight into the trip.
 
-## 来中国旅游？这个插件能帮到你
+- 🗺️ **Amap POI keyword search** (optionally scoped to a city; auto-detects the trip city, falls back to nationwide)
+- 🏙️ **Auto city detection** (v1.1.5): three-tier inference — trip title → first geocoded place reverse-lookup → address parsing
+- 📐 **Auto coordinate conversion** (v1.1.5): Amap returns GCJ-02 (Mars coordinates) → auto-converted to WGS-84 on save, so places no longer sit ~500m off on the map
+- 📋 **Copy address**: one tap copies name / full address (China · province · city · district · street) / coordinates / map link / type / phone
+- ➕ **Add to trip**: writes into the current trip, automatically filling:
+  - **coordinates** (lat/lng, already converted to WGS-84)
+  - **address**
+  - **type → description**
+  - **Amap map link → Website field** (tap "Open link" on the place card to jump to Amap)
+  - **phone → Notes field** (on its own line)
+- 🔀 **Result sorting** (v1.1.0): rating / avg cost / default — pure client-side (distance sort disabled: SDK has no "selected place" event, since v1.3.2; distance removed from cards in v1.3.17)
+- 🖥️ **Responsive action buttons** (v1.1.6): on mobile, Copy/Add sit side-by-side with labels; on desktop (≥641px) they stack vertically on the card's right edge as icon-only buttons (Lucide Copy / Plus, with hover tooltips)
+- 🔑 **Per-user API key** (Settings → Plugins, encrypted storage, never in code)
+- 💡 **Smart key hint**: shows a sign-up hint when no key is set, auto-hides once a key is saved or a search succeeds
 
-TREK 自带的搜索用的是 OpenStreetMap，找地标没问题，但找那些让旅程变特别的小店（隐藏咖啡馆、小吃摊、精品店）就抓瞎了。高德是中国最详细的地图，本插件让你在 TREK 里直接用上它：
+## Traveling in China? This plugin helps.
 
-- 按关键词搜索中国 POI（试试 故宫 / 长城 / 西湖，或任何本地小店名）
-- 一键复制完整地址——街道、区、市、国家——外加经纬度和高德地图链接
-- 一键把地点添加进当前行程，坐标、地址、地图链接自动填好
+Planning a trip to China? TREK's built-in search uses OpenStreetMap — great for landmarks, but weak for the small local spots that make a trip special (hidden cafés, food stalls, boutique shops). Amap is China's most detailed map, and this plugin gives you access to it right inside TREK:
 
-唯一要求是一个高德 Web 服务 API Key（[console.amap.com](https://console.amap.com/)）。个人开发者配额每天 50 万次调用——注册可能需要中国手机号，但拿到 Key 之后，搜中国地点比只用 OSM 容易太多了。
+- Search Chinese POIs by keyword (try 故宫 / 长城 / 西湖, or any local spot name)
+- One tap copies the full address — street, district, city, country — plus coordinates and an Amap map link
+- One tap adds the place to your open trip with coordinates, address and map link filled in automatically
 
-## 与 TREK 官方中国地图方案的关系
+The only requirement is an Amap Web Service API key from [console.amap.com](https://console.amap.com/). The personal-developer quota is 500,000 calls/day — you may need a Chinese phone number to register, but once you have a key, searching Chinese places becomes dramatically easier than with OSM alone.
 
-TREK 官方有一个关于中国地图模式的讨论（[#1636](https://github.com/liketrek/TREK/discussions/1636)、[#1673](https://github.com/liketrek/TREK/discussions/1673)），方向是把高德作为内置的 place search provider，并考虑高德瓦片/路线。**该方案仍在讨论阶段，尚未有代码**，且核心难点是坐标系（GCJ-02 vs WGS-84 转换涉及法律灰色地带）。
+## Relationship to TREK's official China map plans
 
-本插件的定位与官方方案不同：
+TREK has open discussions about a China map mode ([#1636](https://github.com/liketrek/TREK/discussions/1636), [#1673](https://github.com/liketrek/TREK/discussions/1673)) aiming to make Amap a built-in place search provider, possibly with Amap tiles and routing. **That proposal is still in discussion — no code yet** — and its core challenge is the coordinate system (GCJ-02 vs WGS-84 conversion is a legal grey area).
 
-- **纯搜索增强**：只做高德 POI 搜索与结果展示，不涉及地图渲染与路线
-- **坐标已解决**（v1.1.5+）：插件内置 GCJ-02 → WGS-84 转换（eviltransform 算法），高德坐标存进 TREK 后地图位置精确，不再存在"坐标偏 500 米"问题
-- **即插即用**：官方落地前，本插件是 TREK 里可立即使用的高德搜索方案；官方落地后，其搜索能力仍可与官方功能互补
-- **持续可用**：插件独立于官方路线，不受官方讨论进度影响
+This plugin is positioned differently:
 
-> ⚠️ **合规声明**：本插件的坐标转换仅用于修正高德（GCJ-02）与 OpenStreetMap（WGS-84）之间的地图显示偏差，以确保地点在行程地图上位置准确。请在使用前了解并遵守所在国家/地区的法律法规。
+- **Pure search enhancement**: it only searches Amap POIs and shows results — no map rendering, no routing
+- **Coordinates handled** (v1.1.5+): the plugin converts GCJ-02 → WGS-84 (eviltransform algorithm) before saving, so places land exactly where they should — no more ~500m offset
+- **Ready to use now**: until the official work lands, this plugin is the immediately usable Amap search option for TREK; once it does, its search capability remains complementary
+- **Independent**: the plugin does not depend on the official roadmap or its timeline
 
-## Screenshots · 截图
+> ⚠️ **Compliance note**: The coordinate conversion in this plugin only corrects the display offset between Amap's GCJ-02 and OpenStreetMap's WGS-84, so places appear at their true location on the trip map. Please review and comply with the laws and regulations of your jurisdiction before use.
 
-![亮色主题](docs/screenshot.png)
+## Screenshots
 
-![暗色主题](docs/screenshot-dark.png)
+![Light theme](docs/screenshot.png)
 
-![亮暗双主题 Bento UI](docs/screenshot-bento-dual.jpg)
+![Dark theme](docs/screenshot-dark.png)
 
-插件界面自动跟随 TREK 的亮/暗主题。
+![Light & dark Bento UI](docs/screenshot-bento-dual.jpg)
 
-## Permissions · 权限
+The plugin UI follows TREK's light/dark theme automatically.
 
-激活时 TREK 会向管理员展示此列表。本插件只申请三个权限，且仅与高德搜索接口通信。
+## Permissions
 
-| 权限 | 用途 |
+TREK shows this list to the admin at activation — exactly three permissions, and the only network call is to Amap's search endpoint.
+
+| Permission | Why |
 |---|---|
-| `db:read:trips` | 读取当前行程上下文 |
-| `db:write:places` | 在行程中创建地点 |
-| `http:outbound:restapi.amap.com` | 调用高德 POI 搜索接口（服务端，唯一网络请求） |
+| `db:read:trips` | Read the current trip context |
+| `db:write:places` | Create places in the trip |
+| `http:outbound:restapi.amap.com` | Call the Amap POI search API (server-side, the only network request) |
 
-## Setup · 安装配置
+## Setup
 
-### 1. 安装
+### 1. Install
 
-1. 打包：`npx trek-plugin-sdk pack` → `plugin.zip`
-2. TREK → Admin → Plugins → **Upload** → 选择 zip
-3. 激活并同意权限
+1. Pack: `npx trek-plugin-sdk pack` → `plugin.zip`
+2. TREK → Admin → Plugins → **Upload** → choose the zip
+3. Activate and approve the permissions
 
-### 2. 申请高德 Key
+### 2. Get an Amap key
 
-- 高德开放平台：<https://console.amap.com/>
-- 注册（支付宝/手机号即可）→ 控制台 → 应用管理 → 创建新应用 → 添加 Key
-- 类型选 **Web 服务**（不是 Web 端 JS API！）
-- 个人开发者配额 50 万次/天，搜地点根本用不完
+- Amap open platform: <https://console.amap.com/>
+- Register (Alipay / phone) → Console → Application Management → Create app → Add key
+- Choose the **Web 服务 (Web Service)** type — *not* Web 端 JS API!
+- Personal-developer quota: 500,000 calls/day — searching places won't come close to using it up
 
-### 3. 使用
+### 3. Use it
 
-1. 打开任意行程 → 顶部 tab 栏出现「Find Places」（v1.4.0 起插件界面全英文，见更新日志）
-2. 输入关键词（如：故宫 / 长城 / 西湖）+ 城市（可选）→ 搜索
-3. **📋 复制地址** → 复制完整地址 / 经纬度 / 地图链接
-4. **➕ 添加进行程** → 写入当前行程（坐标 / 地址 / 类型 / 网站链接 / 电话备注一步到位）
+1. Open any trip → the **Find Places** tab appears in the planner bar
+2. Type a keyword (e.g. 故宫 / 长城 / 西湖) + optional city → Search
+3. **📋 Copy address** → copies full address / coordinates / map link
+4. **➕ Add to trip** → writes into the open trip (coordinates / address / type / website / phone notes in one step)
 
-### 链接说明
+### Links
 
-- **高德地图链接**自动存入地点的「网站」字段，点击地点卡片底部的"打开链接"即可跳转至高德地图。
-- **其他链接**（官网/小红书/抖音等）：编辑该地点的「备注」添加，一行一个（备注里链接可点击）。例：`小红书: http://xhslink.cn/xxx`
+- **Amap map link** is stored in the place's **Website** field automatically — tap "Open link" on the place card to jump to Amap.
+- **Other links** (official site / Xiaohongshu / Douyin…): add them to the place's **Notes**, one per line (links in notes are clickable). Example: `小红书: http://xhslink.cn/xxx`
 
-## 兼容性
+## Compatibility
 
-- 需要 **TREK >=3.4.0**（`>=3.4.0 <4.0.0`）
-- 无原生模块，无付费 API（高德 API 个人开发者配额 50 万次/天）
+- Requires **TREK >=3.4.0** (`>=3.4.0 <4.0.0`)
+- No native modules, no paid API beyond Amap's API quota (personal-developer: 500,000 calls/day)
 
-## 支持
+## Support
 
 - Issues & questions: <https://github.com/imusic-487/Trek-Amap-search/issues>
 - Source & changelog: <https://github.com/imusic-487/Trek-Amap-search>
 
-## 待办 / Roadmap
 
-- [ ] 搜索历史（本地存最近 10 条，输入框下方标签点击直达，带清空按钮）
-- [ ] 「在高德地图中查看」按钮（卡片右上角，打开 amap.com/place/{id}；移动端二维码扫码）
-- [ ] 复制地址分选项（只地址 / 完整信息 / 名称+地址）
-- [ ] 距离排序启用（检测到行程锚点自动启用，无锚点置灰 + 提示）
-- [ ] 批量添加（勾选多个 POI 一次加入行程）
-- [ ] 搜索结果地图预览（结果列表上方小地图标记）
-- [ ] 收藏常用 POI（本地持久化 + 导出/导入）
-- [x] ~~空状态文案优化 + 错误重试按钮 + Key 引导链接直达~~（v1.3.15 空态美化+重试按钮；v1.3.25 Key 链接直达）
+## Roadmap
 
-## 更新日志
+- [ ] Search history (recent 10, tag shortcuts under the input, clear button)
+- [ ] "View on Amap" button (card corner → amap.com/place/{id}; QR code on mobile)
+- [ ] Copy options (address only / full details / name+address)
+- [ ] Distance sort (auto-enable when a trip anchor exists; greyed out + hint otherwise) — blocked on TREK SDK support
+- [ ] Batch add (select multiple POIs, add at once)
+- [ ] Map preview of results (mini map above the list)
+- [ ] Favorites (local persistence + export/import)
+- [x] ~~Empty-state copy + retry button + key-hint link~~ (v1.3.15 empty state + retry; v1.3.25 key-hint link)
 
-### v1.4.0（2026-08-22）— 插件界面全英文化
-- 插件运行时界面改为全英文：`client/index.html`（标题/标签/占位符/按钮/通知提示/空态与错误态/首次引导）、服务端返回前端的错误提示、`trek-plugin.json` 清单（显示名改为 **Find Places**、描述、`amap_key` 设置项标签/占位符）
-- 用于数据匹配的字符串保留中文不译：高德 `type` 字段筛选用的正则、类型→emoji 映射表、内置 `CITY_NAMES` 城市推断列表——这些匹配的是高德 API 固定返回的中文文本，与界面语言无关
-- 插件 id `amap-search` 不变，仅显示名从「找地方」改为 **Find Places**
+## Changelog
 
-### v1.3.29（2026-08-16）— 引导补 Key 前置步骤
-- 用户反馈"三步引导没写 Key 在哪申请/在哪填"：引导顶部新增 🔑 高亮块——**TREK 设置 → 插件 → 找地方 → 填「高德 Web 服务 Key」**，附 console.amap.com 免费申请链接（类型选 Web 服务）
-- 背景：新手装完插件第一步卡在没 Key 搜不了，引导却只讲了搜→加，Key 引导藏在页面底部看不到 → 前置闭环
+### v1.4.0 (2026-08-22) — Fully localized to English
+- The plugin's running UI is now fully English: `client/index.html` (title, labels, placeholders, buttons, notifications, empty/error states, welcome guide), server-side error messages returned to the client, and the `trek-plugin.json` manifest (display name **Find Places**, description, `amap_key` setting label/placeholder)
+- Data-matching strings — the Amap `type`-field regexes used for filtering, the emoji-by-category lookup, and the built-in `CITY_NAMES` list used for city inference — stay in Chinese, since they match text Amap's API always returns in Chinese regardless of UI language
+- Plugin id `amap-search` is unchanged; only the display name changed from 找地方 to **Find Places**
 
-### v1.3.28（2026-08-16）— 插件改名「找地方」
-- 顶部 tab / 商店卡片显示名 `高德搜索` → **`找地方`**（id `amap-search` 不变，仅显示名；与 README 标题、商店描述指引统一）
-- 背景：商店描述已写"顶部「找地方」tab 即用"，但插件名还是「高德搜索」→ 用户按描述找不到入口，改名闭环
+### v1.3.29 (2026-08-16) — Key step added to first-open guide
+- Users said the 3-step guide didn't say where to get/enter the key: the guide now opens with a highlighted 🔑 block — **TREK Settings → Plugins → 找地方 → enter your Amap Web Service key**, with the free console.amap.com signup link (choose "Web Service" type)
+- Why: new users were stuck at step 0 (no key = can't search) while the guide only covered search→add; the key hint lived at the page bottom where nobody looks. Now the loop is closed.
 
-### v1.3.27（2026-08-15）— 首次打开三步引导
-- 用户反馈"装了不知道怎么用"：初始空态显示「三步用起来」引导（1 打开行程→顶部 tab「找地方」→ 2 输入关键词搜索 → 3 一键复制/添加进行程），搜索后自动被结果覆盖
-- 定位：Key 引导语（v1.3.25）解决"没 Key 怎么办"，本版引导解决"装完从哪开始用"，补齐新手闭环
+### v1.3.28 (2026-08-16) — Renamed to 找地方
+- Display name (trip tab & store card) changed from 高德搜索 to **找地方**, matching the README title and the store description's "Find Places tab" guidance. The id `amap-search` is unchanged — display name only.
+- Why: the store description already told users to look for a "找地方" tab, but the plugin was still named 高德搜索 — users couldn't find it. Rename closes the loop.
 
-### v1.3.26（2026-08-14）— 搜索行三控件统一高度
-- 宿主 `.trek-input` 无固定高度（8px padding + 13px 字 ≈36px），与 40px 搜索按钮差 4px 致不齐（网页+移动端同样问题）→ `.search-row .trek-input, .search-row .trek-btn { height: 40px }` 统一
+### v1.3.27 (2026-08-15) — First-open 3-step guide
+- Users reported not knowing how to use it after install: the initial empty state now shows a "3 steps to get started" guide (1. open a trip → the "Find Places" tab → 2. type a keyword & search → 3. copy details or add to trip), auto-covered once you search
+- Complements the key hint (v1.3.25): that answers "no key yet?", this answers "where do I even start?" — first-run loop closed
 
-### v1.3.25（2026-08-14）— 正确性修复批次（qwen3.8-max 审查驱动）
-- **loadMore 改 lastQuery 快照**：改关键词不点搜索时翻页不再串包（两种查询永不混合）
-- **空状态文案条件修复**：改绑 `filterActive`（原错误绑定城市值，筛选激活但城市为空时不提示）
-- **空态 pager 残留修复**：`showEmptyState()` 统一隐藏分页器（筛选后 0 匹配不再与"加载更多"同屏）
-- 评分色 `#f59e0b` → **`#d97706`（amber-600）**（浅色对比度 2.1→3.3:1）
-- 桌面图标按钮补 aria-label（含"添加中/已添加"状态同步）、key-hint 加真实申请链接、城市框回车触发搜索
-- POI 字段 `esc()` HTML 转义（防异常店名破坏卡片结构）；btn-more loader 16px 全局统一（翻页按钮不再跳高）；删除 `.poi-meta` 死代码
+### v1.3.26 (2026-08-14) — Unified 40px search row
+- Host `.trek-input` has no fixed height (~36px) vs the 40px button → `.search-row .trek-input, .search-row .trek-btn { height: 40px }` aligns all three controls (web + mobile)
 
-### v1.3.24（2026-08-14）— 信息行 emoji → lucide 图标
-- 📍/☎/🕐 → **map-pin / phone-call / clock-arrow-right**（lucide 官方定义），`.poi-info-icon svg` 统一 14px + flex 垂直居中
+### v1.3.25 (2026-08-14) — Correctness batch (qwen3.8-max UX review)
+- **loadMore uses a `lastQuery` snapshot** — editing the keyword without searching no longer mixes queries when paging
+- **Empty-state copy fixed** (now keyed on `filterActive`, not the city value)
+- **Pager hidden inside `showEmptyState()`** — no more "loaded 20/50 + load more" under a "no results" screen after filtering
+- Rating color `#f59e0b` → **`#d97706`** (amber-600, contrast 2.1→3.3:1 on light theme)
+- aria-labels on desktop icon buttons (synced across loading/done states), real link on the key hint, Enter submits from the city field
+- `esc()` HTML escaping on all POI fields, 16px more-button loader (no height jump), removed dead `.poi-meta` CSS
 
-### v1.3.23（2026-08-14）— 移动端隐藏 ✨ 自动识别标签
-- 一行化后 100px 城市框内标签会与搜索按钮重叠 → 移动端直接隐藏（城市名已在输入框可见，标签让位给可用性）
+### v1.3.24 (2026-08-14) — Lucide icons for info rows
+- 📍/☎/🕐 → **map-pin / phone-call / clock-arrow-right** (official lucide paths), unified 14px via `.poi-info-icon svg`
 
-### v1.3.22（2026-08-14）— 修复搜索按钮字面量 bug
-- 静态 HTML 里写 `${ICON_SEARCH}` 不展开，按钮显示字面量 → 改内联 lucide SVG（教训：**静态 HTML 不能用 `${}` 模板语法**，只有 `<script>` 里可以）
+### v1.3.23 (2026-08-14) — Hide ✨ auto-tag on mobile
+- In the 100px city box the tag collided with the search button → hidden on mobile (the detected city is visible in the input anyway)
 
-### v1.3.21（2026-08-14）— 搜索按钮全局统一 icon+文字
-- 移动端不再隐藏按钮文字，两端同款 🔍+搜索（用户拍板"全局都变成 icon_search 搜索"）
+### v1.3.22 (2026-08-14) — Fix literal `${ICON_SEARCH}` in the button
+- Static HTML doesn't evaluate JS template syntax → inlined the lucide search SVG (lesson: no `${}` in static HTML, only inside `<script>`)
 
-### v1.3.20（2026-08-14）— 移动端搜索区一行化
-- 搜索按钮 icon 化 + 城市框固定 100px + 关键词 flex:1 → 原三行竖排 ≈120px 变一行 ≈40px
+### v1.3.21 (2026-08-14) — Global icon+label search button
+- Mobile no longer hides the button label — same 🔍+搜索 on both ends
 
-### v1.3.19（2026-08-14）— 电脑端按钮顶部对齐
-- `.poi-actions { justify-content: center → flex-start }`：原垂直居中让按钮列悬在卡片中部，与名称行评分/人均错位（电脑端"不水平"问题）
+### v1.3.20 (2026-08-14) — One-line mobile search row
+- Icon search button + 100px city field + flex:1 keyword → three stacked rows (~120px) became one (~40px)
 
-### v1.3.18（2026-08-14）— 评分/人均 12px + 营业时间完整显示
-- 评分人均字号压到 12px + `text-secondary` 弱化；营业时间多段只显示第一段 +"等N段"防撑爆
+### v1.3.19 (2026-08-14) — Desktop action buttons top-aligned
+- `justify-content: center → flex-start` so the button column lines up with the name row (rating/cost), fixing the "not level" look
 
-### v1.3.17（2026-08-14）— 卡片信息过载优化（用户拍板）
-- **距离直接删除**（锚点依赖行程已有地点，很多行程没有）；评分/人均上移名称行右侧（左"是什么"右"值不值"）；营业时间独立一行
+### v1.3.18 (2026-08-14) — 12px rating/cost + full opening hours
+- Rating/cost down to 12px secondary; opening hours show first segment + "…N more" to avoid overflow
 
-### v1.3.16（2026-08-14）— 筛选框面板宽度根因修复
-- SDK kit `enhanceSelect()` 把原生 select 包进 `.trek-select-wrap` 并隐藏原 select → 面板（absolute left/right:0）跟随 **wrap** 宽度而非 select → `.filter-sort-row .trek-select-wrap { flex:1; min-width:150px }` 才生效（改 select 自身 min-width 无效）
+### v1.3.17 (2026-08-14) — Card info hierarchy (user-approved)
+- **Distance removed** (anchor depends on trip places that often don't exist); rating/cost moved to the right of the name row; opening hours on their own line
 
-### v1.3.15（2026-08-14）— 6 条 UX 优化
-- 搜索框下引导小字（城市自动识别/筛选排序/高德链接提示）；select 固定宽度；底部说明精简移位；**loadMore 增量追加**（insertAdjacentHTML 只插新卡）+ **事件委托**（bindPoiEvents 绑一次）；空状态美化（🔍 大图标+三按钮：清筛选/换关键词/选城市）；错误状态加重试按钮
+### v1.3.16 (2026-08-14) — Root fix for the filter dropdown width
+- SDK kit `enhanceSelect()` wraps the native select in `.trek-select-wrap` and hides it — the panel (`left:0;right:0`) follows the **wrap**, not the select → `.filter-sort-row .trek-select-wrap { flex:1; min-width:150px }` is the one that works
 
-### v1.3.14（2026-08-14）— 基于 v1.3.12（两端全展开）+ 官方滚动条样式
-- 用户拍板：v1.3.12 是手机+电脑体验最好的一版（两端都不限高、内容全展开）——在其基础上只加 TREK 官方滚动条样式（6px 细条圆角 + `--scrollbar-track/thumb/hover` 深浅色变量，来自官方 `client/src/index.css`），电脑端滚动条不再突兀
+### v1.3.15 (2026-08-14) — 6 UX improvements
+- Guide text under the search box; fixed select widths; trimmed bottom hint; **incremental loadMore** (insertAdjacentHTML) + **event delegation** (bindPoiEvents once); prettier empty state (🔍 + clear-filter / new-keyword / pick-city buttons); retry button on errors
 
-### v1.3.13（2026-08-14）— 分端方案（用户实测手机端体验好）
-- **电脑端**：结果区不限高，内容全展开（v1.3.12 保持）
-- **移动端**（≤640px）：保留 50vh 限高 + 隐藏滚动条——用户实测手机端这个体验好，不动它
+### v1.3.0–v1.3.14 (2026-08-14) — Feature & polish series (see the Chinese README for details)
+- v1.3.0 initial UX rework (P0+P1 + city hint) → v1.3.9 feature-logic layer (persistent filters/sort, city ✨ tag, direction labels) → v1.3.10 pager crash fix → v1.3.14 final scrollbar styling (official 6px track + theme-aware colors, full expansion both ends)
 
-### v1.3.12（2026-08-14）— 回到内容全展开（用户拍板）
-- 去掉 `#results` 的 max-height + overflow 限高（桌面 min(480px,60vh) / 移动 50vh 全部移除）——结果区恢复内容全展开，无内部滚动
-- 同时移除 html/body 滚动条隐藏（v1.3.11 引入）——回到 v1.3.4 之前的原始行为
-- ⚠️ 已知 trade-off：结果多时 iframe 变高，宿主页面滚动条可能吃 ~15px 宽度（用户接受）
+### v1.2.0 (2026-08-13)
+- Add button now shows icon feedback: spinner loader (lucide `loader` + rotation animation) while adding, check mark (lucide `check`) when added — replacing the plain text "Adding… / ✅ Added"
 
-### v1.3.11（2026-08-14）— 滚动条隐藏扩展到 html/body 层
-- 插件 iframe 在宿主固定高度时，内容超高会出现 body 层滚动条（之前只隐藏了 #results 的）——现在 html/body 层也隐藏滚动条（`scrollbar-width: none` + `::-webkit-scrollbar { display:none }`），只影响插件 iframe 内部，不影响宿主页面
+### v1.1.9 (2026-08-12)
+- Fix mobile icon/text baseline alignment in action buttons (SVG sizing/centering was desktop-only)
 
-### v1.3.10（2026-08-14）— 修复 pager 崩溃（第二次搜索报错）
-- **根因**：v1.3.8 把 pager 动态移入 results，但 `renderResults`/`showSkeleton` 的 `innerHTML` 重建会销毁它 → `updatePager` 取到 null → `Cannot read properties of null (reading 'style')`，第二次搜索必现
-- **修复**：结构根治——`#results` 作为滚动容器，内嵌 `#results-list`（innerHTML 重建区）+ `#pager`（静态子元素，永不被销毁）；`renderResults`/`showSkeleton`/`doSearch` 全部改为操作 `#results-list`
+### v1.1.8 (2026-08-12)
+- Button icons switched to inline Lucide SVGs (Copy / Plus), aligned with TREK's design language
 
-### v1.3.9（2026-08-14）— 功能逻辑层（UX/UI 复审 P0+P1 可发现性）
-- 筛选/排序不重置：换关键词搜索保留用户偏好（类型+排序方式），连续探索不打断
-- 筛选/排序不隐身：下拉行初始可见 + 空状态保留，用户知道有这功能
-- 城市识别持久标签：✨ 自动识别常驻可见（用户手动修改后消失），首次 toast 保留
-- 排序方向标注：评分 高→低 / 人均 低→高
-- 下拉标签：类型 / 排序 11px 小字前置
+### v1.1.7 (2026-08-12)
+- Copy icon fix (emoji was ambiguous)
 
-### v1.3.8（2026-08-14）— 本地试装八轮反馈
-- 结果区 max-height 改视口相关（桌面 `min(480px, 60vh)`、移动端 50vh）——高度随窗口大小自适应，不再固定 480px
-- 「已加载 X/Y 条 + 加载更多」pager 移入结果区内部末尾——随列表滚动即可见，移动端不再被 TREK 底部导航栏盖住
+### v1.1.6 (2026-08-12)
+- Desktop (≥641px): Copy/Add buttons become a vertical icon column on the card's right edge; mobile keeps side-by-side labeled buttons
 
-### v1.3.7（2026-08-14）— 本地试装七轮反馈
-- 结果区滚动条完全隐藏（`scrollbar-width: none` + `::-webkit-scrollbar { display:none }`），保留滚动功能——列表视觉干净，滚轮/触摸照常滚动
+### v1.1.5 (2026-08-12)
+- Auto city detection (trip title → coordinate reverse-lookup → address parsing)
+- GCJ-02 → WGS-84 automatic coordinate conversion (eviltransform), fixing the ~500m map offset
 
-### v1.3.6（2026-08-14）— 本地试装六轮反馈
-- 修复主题切换列表重载：`onContext` 只在 tripId 变化时刷新（TREK 切浅色/深色也会重发 context，tripId 未变则列表不动，颜色由主题 tokens 自动切换）
+### v1.1.3 / v1.1.4 (2026-08-12)
+- Hide distance-sort entry that depends on trip anchor; highlight active sort; inline type tags
+- Fix crash on empty tel array from Amap
 
-### v1.3.5（2026-08-14）— 本地试装五轮反馈
-- 搜索按钮固定 `height: 40px`：文字态/加载态高度完全一致（实测 37.5 vs 40，min-height 不锁顶）
-- 结果区限高内部滚动（`max-height: 480px; overflow-y: auto`，移动端 55vh）：搜索结果不再撑高 iframe → 宿主页面不产生新滚动条 → 卡片宽度稳定不变窄
+### v1.1.2 (2026-08-12)
+- Fix sort cache bug: empty search results no longer render stale data
 
-### v1.3.4（2026-08-14）— 本地试装四轮反馈
-- 搜索按钮固定宽高（min-width 68px / min-height 36px）：加载态转圈 icon 与「搜索」文字按钮长宽完全一致，不再收缩
+### v1.1.1 (2026-08-12)
+- Fix crash on multi-session opening hours (opentime2 as array)
 
-### v1.3.3（2026-08-14）— 本地试装三轮反馈
-- 「已在行程」状态改为**以行程真实数据为准**：每次搜索后刷新行程地点列表——计划页删除地点后再搜索，按钮自动恢复「添加进行程」（不再残留"已添加"）
+### v1.1.0 (2026-08-12)
+- Richer cards: thumbnail / type tags / rating / avg cost / opening hours / distance
+- Client-side sorting: rating / cost / distance / default
+- Mobile layout (<640px)
 
-### v1.3.2（2026-08-14）— 本地试装二轮反馈
-- 筛选 + 排序合并为两个下拉（官方 `.trek-select` 增强组件），替换原来两行按钮，移动端更省空间
-- 搜索按钮加载 icon 缩小至 16px（保持原按钮尺寸），「搜索中…」保持轻提示
-- 卡片地址与电话分行展示
-- 距离排序维持屏蔽：SDK 无「选中地点」事件（事件订阅仅 place:created/day:updated 等），无法按计划页选中地点排序，待 TREK 支持后启用
+### v1.0.1 (2026-08-11)
+- First registry release
 
-### v1.3.1（2026-08-14）— 本地试装反馈修复
-- **修复读地点 API**：`/trip-places`、`/trip-anchor` 改用 `ctx.trips.getPlaces()`（原 `ctx.places.list` 不存在 → 刷新后"已在行程"失效、距离锚点拿不到）
-- 移除搜索时的「取消」按钮；搜索按钮加载时只显示转圈 icon，「搜索中…」改为轻提示
-- 卡片精简：移除「更多信息」折叠，坐标/商圈不再显示，电话与地址同行展示
-- 距离排序屏蔽（锚点语义 = 行程第一个有坐标地点，非用户当前关注点，价值存疑；保留 README 待办）
+## License
 
-### v1.3.0（2026-08-14）
-- 分页 / 加载更多：`/search` 支持 `page` 参数，结果底部「加载更多」+「已加载 X / Y 条」计数
-- 添加状态持久化：添加成功按钮变「已添加 ✓」禁用；新增 `/trip-places` 端点，刷新后自动标记「已在行程」防重复
-- 加载反馈：搜索按钮转圈 loader + disabled、结果区官方 `.trek-skeleton` 骨架屏（shimmer，深浅色自适应）、新增「取消」按钮（请求序号作废旧响应）
-- 筛选栏：全部 / 餐饮 / 景点 / 购物 / 住宿 / 其他（客户端实时筛选，基于高德 type 字段）
-- 卡片信息层次优化：名称放大（15px），坐标/商圈/电话折叠到「更多信息」（`<details>` 展开）
-- 地址精简：去掉「中国」前缀；排序 active 状态增强（背景色 + 文字变色）+「按评分/按人均/默认排序」文字提示
-- 距离排序常驻：有行程锚点自动启用，无锚点置灰 + tooltip 提示（原被屏蔽，审查 3.2）
-- 排序切换动画：结果区 `.trek-stagger` 官方渐入（审查 3.2）
-- 移动端优化：缩略图 140px→96px、按钮紧凑化（审查 3.3 问题 6/7）
-- 城市识别透明度：引导语说明「城市默认自动识别，如不正确请手动更改」+ 识别成功轻提示（审查 3.5 可发现性）
+MIT — see [LICENSE](./LICENSE).
 
-### v1.2.0（2026-08-13）
-- 添加按钮状态改为图标反馈：点击后显示转圈 loader（lucide `loader` + 旋转动画），添加成功显示打勾（lucide `check`），不再用纯文字「添加中…/✅ 已添加」
-
-### v1.1.9（2026-08-12）
-- 修复移动端按钮图标与文字不在同一水平线（SVG 尺寸与居中样式此前只对桌面端生效）
-
-### v1.1.8（2026-08-12）
-- 按钮图标改为 Lucide 内联 SVG（复制 Copy / 添加 Plus），与 TREK 设计语言对齐
-
-### v1.1.7（2026-08-12）
-- 复制图标修正（emoji 表达不清）
-
-### v1.1.6（2026-08-12）
-- 网页端（≥641px）复制/添加按钮改为卡片右侧垂直图标列；移动端保持并排带文字
-
-### v1.1.5（2026-08-12）
-- 城市自动识别（行程标题 → 坐标反查 → 地址解析三级推断）
-- GCJ-02 → WGS-84 坐标自动转换（eviltransform 开源算法），修复地图位置偏移约 500 米
-
-### v1.1.3 / v1.1.4（2026-08-12）
-- 隐藏依赖行程锚点的距离排序入口，默认高亮当前排序，标签同行展示
-- 修复高德返回空 tel 数组时页面报错
-
-### v1.1.2（2026-08-12）
-- 修复排序缓存 bug：搜索无结果时不再用旧结果渲染
-
-### v1.1.1（2026-08-12）
-- 修复高德多段营业时间（opentime2 为数组）导致的崩溃
-
-### v1.1.0（2026-08-12）
-- 卡片增强：缩略图 / 类型标签 / 评分 / 人均 / 营业时间 / 距离
-- 客户端排序：评分 / 人均 / 距离 / 默认
-- 移动端适配（<640px 竖排）
-
-### v1.0.1（2026-08-11）
-- 首个注册版本
-
-## 许可
-
-MIT — 见 [LICENSE](./LICENSE)。
-
-<sub>社区插件，非 TREK 核心团队维护。</sub>
+<sub>This is a community plugin, not maintained or endorsed by the TREK core team.</sub>
