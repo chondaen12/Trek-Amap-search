@@ -121,6 +121,11 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
+### v1.5.2 (2026-08-22) — Coordinate scan still timing out
+- v1.5.1's batching still timed out: `/coord-scan` re-ran city detection (which itself makes Amap network calls) on *every* batch, so even a small batch could add up to several sequential round-trips per request
+- City is now detected once (on the first batch) and passed back by the client on subsequent batches instead of being re-detected
+- Batch size dropped to 1 place per request (was 6) for the safest possible margin, and each Amap call now has a 6s timeout so a single slow request fails fast instead of hanging the whole scan
+
 ### v1.5.1 (2026-08-22) — Fix coordinate scan timeout
 - `/coord-scan` scanned every trip place in one request; trips with more than a handful of places could exceed the client's request timeout ("Request error: timeout of 8000ms exceeded") before the scan finished
 - Scan is now paginated (`offset`/`limit`, default batch of 6 places per request) — the client loops through batches automatically, showing scan progress, so no single request blocks for long regardless of trip size
