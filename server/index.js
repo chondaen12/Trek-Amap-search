@@ -116,7 +116,7 @@ async function scanPlaceCoord(place, key, city) {
   try {
     const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
     if (city) params.set('city', city)
-    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`)
+    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(6000) })
     data = await res.json()
   } catch {
     return null
@@ -184,7 +184,7 @@ async function regeoCity(lng, lat, ctx) {
     // 存储坐标按 WGS-84 处理，转回 GCJ-02 再查高德（高德用火星坐标）
     const gcj = wgs84ToGcj02(Number(lng), Number(lat))
     const url = `https://restapi.amap.com/v3/geocode/regeo?location=${gcj.lng},${gcj.lat}&key=${key}`
-    const res = await fetch(url)
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
     const d = await res.json()
     if (String(d.status) !== '1' || !d.regeocode) return null
     const ac = d.regeocode.addressComponent || {}
@@ -378,7 +378,7 @@ module.exports = definePlugin({
           return json({ ok: false, error: 'Missing tripId' })
         }
         const offset = Math.max(0, parseInt(req.query && req.query.offset, 10) || 0)
-        const limit = Math.min(20, Math.max(1, parseInt(req.query && req.query.limit, 10) || 6))
+        const limit = Math.min(20, Math.max(1, parseInt(req.query && req.query.limit, 10) || 1))
         const key = await ctx.settings.get('amap_key')
         if (!key) {
           return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
@@ -390,8 +390,15 @@ module.exports = definePlugin({
           return json({ ok: false, error: `Failed to read trip places: ${e.message}` })
         }
         places = (places || []).filter(p => p && p.name)
+        // v1.5.2: 城市只在第一批（offset=0）探测一次——探测本身要发 listMine/regeo 等额外请求，
+        // 每批都重探测会让单次请求叠加到 7-8 个网络往返，批量再小也照样超时；后续批次由前端把第一批返回的
+        // city 原样带回来，服务端直接用，不重新探测
         let city = null
-        try { city = (await detectTripCity(tripId, ctx)).city } catch {}
+        if ('city' in (req.query || {})) {
+          city = req.query.city || null
+        } else {
+          try { city = (await detectTripCity(tripId, ctx)).city } catch {}
+        }
 
         const batch = places.slice(offset, offset + limit)
         const results = []
