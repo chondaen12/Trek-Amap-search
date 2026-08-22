@@ -93,7 +93,19 @@
   </head>
   <body>
     <div class="trek-card" style="max-width: 720px; margin: 0 auto; padding: 16px">
-      <h2 class="trek-h2" style="margin-top: 0">🗺️ Find Places</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+        <h2 class="trek-h2" style="margin-top: 0">🗺️ Find Places</h2>
+        <button id="btn-coord-fix" class="trek-btn trek-btn--secondary" style="flex:none; font-size:12px; padding:6px 10px" title="Re-check this trip's existing places against Amap and fix any coordinates that drifted">🛠️ Fix coordinates</button>
+      </div>
+
+      <!-- v1.4.1: 坐标修复面板——扫描行程已有地点，逐个重新搜索高德比对新旧坐标，预览确认后才写入 -->
+      <div id="coord-fix-panel" style="display:none; margin-bottom:14px; border:1px solid var(--trek-border, rgba(128,128,128,0.25)); border-radius:10px; padding:12px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+          <div style="font-size:13px; font-weight:600">🛠️ Fix coordinates</div>
+          <button id="coord-fix-close" class="trek-btn trek-btn--secondary" style="flex:none; padding:4px 8px; font-size:12px">✕</button>
+        </div>
+        <div id="coord-fix-body" style="margin-top:10px; font-size:12px"></div>
+      </div>
 
       <div class="search-row" style="display: flex; gap: 8px; flex-wrap: wrap">
         <input id="q" class="trek-input" placeholder="Search keywords, e.g. Forbidden City / Great Wall / West Lake" style="flex: 2; min-width: 200px" />
@@ -644,6 +656,90 @@
         currentFilter = e.target.value
         renderResults(visiblePois())
       })
+
+      // v1.4.1: 坐标修复——扫描行程已有地点，逐个用地点名重新搜索高德比对新旧坐标，预览后确认写入
+      let coordFixResults = []  // 最近一次 /coord-scan 结果，供"应用所选"读取
+      const coordFixPanel = document.getElementById('coord-fix-panel')
+      const coordFixBody = document.getElementById('coord-fix-body')
+
+      function coordFixRowHtml(r, i) {
+        const isNew = r.oldLat === null
+        const distText = isNew ? 'No coordinates yet' : `Moves ${r.distanceM}m`
+        const confidenceTag = r.nameMatch === 'exact' ? '' : (r.nameMatch === 'partial' ? '<span class="poi-tag" title="Amap match name only partially matches">⚠️ Partial name match</span>' : '<span class="poi-tag" title="Amap match name looks different — double-check before applying">❓ Low confidence</span>')
+        const checked = r.nameMatch !== 'low' ? 'checked' : ''
+        return `
+          <label style="display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--trek-border, rgba(128,128,128,0.15))">
+            <input type="checkbox" data-fix-idx="${i}" ${checked} style="margin-top:3px" />
+            <span style="flex:1; min-width:0">
+              <div style="font-weight:600; display:flex; gap:6px; align-items:center; flex-wrap:wrap">${esc(r.name)}${confidenceTag}</div>
+              <div style="opacity:0.7; margin-top:2px">${isNew ? '' : `Old: ${r.oldLat.toFixed(6)}, ${r.oldLng.toFixed(6)} → `}New: ${r.newLat.toFixed(6)}, ${r.newLng.toFixed(6)} <span style="opacity:0.8">(${distText})</span></div>
+              <div style="opacity:0.6; margin-top:2px">Matched Amap result: ${esc(r.candidateName)}${r.candidateAddress ? ' — ' + esc(r.candidateAddress) : ''}</div>
+            </span>
+          </label>`
+      }
+
+      function renderCoordFixResults() {
+        if (!coordFixResults.length) {
+          coordFixBody.innerHTML = `<div style="opacity:0.7; padding:8px 0">✅ All checked places already match Amap — nothing to fix.</div>`
+          return
+        }
+        coordFixBody.innerHTML = `
+          <div style="opacity:0.75; margin-bottom:4px">Found ${coordFixResults.length} place(s) whose coordinates look off. Review before applying — unchecked by default when the name match is uncertain.</div>
+          <div id="coord-fix-list">${coordFixResults.map(coordFixRowHtml).join('')}</div>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button id="coord-fix-apply" class="trek-btn trek-btn--primary" style="flex:1">Apply selected</button>
+          </div>`
+        const applyBtn = document.getElementById('coord-fix-apply')
+        applyBtn.addEventListener('click', async () => {
+          const checked = Array.from(document.querySelectorAll('#coord-fix-list input[type=checkbox]:checked'))
+            .map(cb => coordFixResults[Number(cb.dataset.fixIdx)])
+          if (!checked.length) { trek.notify('warning', 'Select at least one place'); return }
+          applyBtn.disabled = true
+          applyBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">Applying</span>`
+          try {
+            const res = await trek.invoke('/coord-fix', {
+              method: 'POST',
+              body: JSON.stringify({
+                tripId: Number(tripId),
+                fixes: checked.map(r => ({ id: r.id, lat: r.newLat, lng: r.newLng })),
+              }),
+            })
+            if (res.ok) {
+              trek.notify('success', `Fixed ${res.updated} place(s)`)
+              if (res.errors && res.errors.length) trek.notify('warning', `${res.errors.length} place(s) failed to update`)
+              coordFixResults = coordFixResults.filter(r => !checked.includes(r))
+              renderCoordFixResults()
+            } else {
+              trek.notify('error', res.error || 'Failed to apply fixes')
+              applyBtn.disabled = false
+              applyBtn.innerHTML = 'Apply selected'
+            }
+          } catch (e) {
+            trek.notify('error', 'Request failed: ' + e.message)
+            applyBtn.disabled = false
+            applyBtn.innerHTML = 'Apply selected'
+          }
+        })
+      }
+
+      async function openCoordFix() {
+        if (!tripId) { trek.notify('error', 'No trip detected'); return }
+        coordFixPanel.style.display = 'block'
+        coordFixBody.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:8px 0"><span class="btn-icon">${ICON_LOADER}</span> Scanning trip places against Amap…</div>`
+        try {
+          const res = await trek.invoke('/coord-scan?tripId=' + encodeURIComponent(tripId))
+          if (!res.ok) {
+            coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">${esc(res.error || 'Scan failed')}</div>`
+            return
+          }
+          coordFixResults = res.results || []
+          renderCoordFixResults()
+        } catch (e) {
+          coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">Request error: ${esc(e.message)}</div>`
+        }
+      }
+      document.getElementById('btn-coord-fix').addEventListener('click', openCoordFix)
+      document.getElementById('coord-fix-close').addEventListener('click', () => { coordFixPanel.style.display = 'none' })
 
       document.getElementById('btn-search').addEventListener('click', doSearch)
       document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch() })

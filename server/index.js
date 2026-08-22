@@ -99,6 +99,41 @@ function matchCity(text) {
   return null
 }
 
+// 两点距离（米，Haversine）——供坐标修复对比新旧坐标偏移量
+function distanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000
+  const rad = Math.PI / 180
+  const dLat = (lat2 - lat1) * rad
+  const dLng = (lng2 - lng1) * rad
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// 识别行程城市（三级推断，供 /trip-city 与 /coord-scan 复用）
+async function detectTripCity(tripId, ctx) {
+  let trips = []
+  try { trips = await ctx.trips.listMine() } catch {}
+  const trip = (trips || []).find(t => String(t.id) === String(tripId))
+  if (trip && trip.title) {
+    const c = matchCity(trip.title)
+    if (c) return { city: c, source: 'title' }
+  }
+  const places = await ctx.trips.getPlaces(Number(tripId))
+  const anchor = (places || []).find(p =>
+    Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))
+  )
+  if (anchor) {
+    const city = await regeoCity(anchor.lng, anchor.lat, ctx)
+    if (city) return { city, source: 'regeo' }
+  }
+  const addrAnchor = (places || []).find(p => p.address)
+  if (addrAnchor && addrAnchor.address) {
+    const c = matchCity(addrAnchor.address)
+    if (c) return { city: c, source: 'address' }
+  }
+  return { city: null, source: null }
+}
+
 // 用高德逆地理反查城市（地点坐标→城市名）
 async function regeoCity(lng, lat, ctx) {
   const key = await ctx.settings.get('amap_key')
@@ -278,33 +313,114 @@ module.exports = definePlugin({
           return json({ ok: false, error: 'Missing tripId' })
         }
         try {
-          // L1: 行程标题匹配城市名（最快，零网络）
-          let trips = []
-          try { trips = await ctx.trips.listMine() } catch {}
-          const trip = (trips || []).find(t => String(t.id) === String(tripId))
-          if (trip && trip.title) {
-            const c = matchCity(trip.title)
-            if (c) return json({ ok: true, city: c, source: 'title' })
-          }
-          // L2: 行程第一个有坐标的地点 → 高德逆地理反查城市
-          const places = await ctx.trips.getPlaces(Number(tripId))
-          const anchor = (places || []).find(p =>
-            Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))
-          )
-          if (anchor) {
-            const city = await regeoCity(anchor.lng, anchor.lat, ctx)
-            if (city) return json({ ok: true, city, source: 'regeo' })
-          }
-          // L3: 地点地址解析（有 address 无坐标时）
-          const addrAnchor = (places || []).find(p => p.address)
-          if (addrAnchor && addrAnchor.address) {
-            const c = matchCity(addrAnchor.address)
-            if (c) return json({ ok: true, city: c, source: 'address' })
-          }
-          return json({ ok: true, city: null, source: null })
+          const { city, source } = await detectTripCity(tripId, ctx)
+          return json({ ok: true, city, source })
         } catch (e) {
           return json({ ok: false, error: `Failed to detect city: ${e.message}` })
         }
+      },
+    },
+
+    // 坐标体检：逐个用地点名重新搜索高德，比对现有坐标与搜索结果换算出的 WGS-84 坐标
+    // 只返回偏移明显（或原本缺坐标）的地点，交由前端预览确认后再调用 /coord-fix 写入
+    // GET /api/plugins/amap-search/coord-scan?tripId=123
+    {
+      method: 'GET',
+      path: '/coord-scan',
+      auth: true,
+      async handler(req, ctx) {
+        const tripId = req.query && req.query.tripId
+        if (!tripId) {
+          return json({ ok: false, error: 'Missing tripId' })
+        }
+        const key = await ctx.settings.get('amap_key')
+        if (!key) {
+          return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
+        }
+        let places
+        try {
+          places = await ctx.trips.getPlaces(Number(tripId))
+        } catch (e) {
+          return json({ ok: false, error: `Failed to read trip places: ${e.message}` })
+        }
+        places = (places || []).filter(p => p && p.name)
+        let city = null
+        try { city = (await detectTripCity(tripId, ctx)).city } catch {}
+
+        const results = []
+        // 逐个请求（不并发），避免瞬时打满高德配额
+        for (const place of places) {
+          let data
+          try {
+            const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
+            if (city) params.set('city', city)
+            const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`)
+            data = await res.json()
+          } catch {
+            continue
+          }
+          if (String(data.status) !== '1' || !data.pois || !data.pois.length) continue
+          const candidate = data.pois[0]
+          const [gLng, gLat] = String(candidate.location || '').split(',').map(Number)
+          if (!Number.isFinite(gLng) || !Number.isFinite(gLat)) continue
+          const wgs = gcj02ToWgs84(gLng, gLat)
+
+          const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
+          const distanceM = hasOld
+            ? Math.round(distanceMeters(Number(place.lat), Number(place.lng), wgs.lat, wgs.lng))
+            : null
+          // 无旧坐标，或新旧坐标相差 >50m 才值得提醒；候选名与原名完全一致时置信度更高
+          if (hasOld && distanceM <= 50) continue
+          const nameMatch = candidate.name === place.name
+            ? 'exact'
+            : (candidate.name && (candidate.name.includes(place.name) || place.name.includes(candidate.name)) ? 'partial' : 'low')
+
+          results.push({
+            id: place.id,
+            name: place.name,
+            oldLat: hasOld ? Number(place.lat) : null,
+            oldLng: hasOld ? Number(place.lng) : null,
+            newLat: wgs.lat,
+            newLng: wgs.lng,
+            distanceM,
+            candidateName: candidate.name,
+            candidateAddress: candidate.address || '',
+            nameMatch,
+          })
+        }
+        return json({ ok: true, city, totalChecked: places.length, results })
+      },
+    },
+
+    // 按 /coord-scan 给出的预览结果，写入用户确认要修复的坐标
+    // POST /api/plugins/amap-search/coord-fix  body: { tripId, fixes: [{ id, lat, lng }] }
+    {
+      method: 'POST',
+      path: '/coord-fix',
+      auth: true,
+      async handler(req, ctx) {
+        const tripId = req.body && req.body.tripId
+        const fixes = req.body && req.body.fixes
+        if (!tripId || !Array.isArray(fixes) || !fixes.length) {
+          return json({ ok: false, error: 'Missing tripId or fixes' })
+        }
+        let updated = 0
+        const errors = []
+        for (const fix of fixes) {
+          const lat = Number(fix && fix.lat)
+          const lng = Number(fix && fix.lng)
+          if (!fix || !fix.id || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+            errors.push({ id: fix && fix.id, error: 'Invalid fix entry' })
+            continue
+          }
+          try {
+            await ctx.places.update(tripId, fix.id, { lat, lng })
+            updated++
+          } catch (e) {
+            errors.push({ id: fix.id, error: e.message })
+          }
+        }
+        return json({ ok: true, updated, errors })
       },
     },
 

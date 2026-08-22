@@ -121,6 +121,11 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
+### v1.5.0 (2026-08-22) — One-click coordinate fix
+- New **🛠️ Fix coordinates** button: scans every place already in the trip, re-searches Amap by name to get a fresh GCJ-02→WGS-84 coordinate, and shows a preview list of any place whose stored coordinates drifted more than ~50m (or never had coordinates)
+- Nothing is written automatically — each row shows old vs. new coordinates and the matched Amap result, with a checkbox (unchecked by default when the Amap name match looks uncertain) so you confirm before applying
+- New server routes `GET /coord-scan` (preview) and `POST /coord-fix` (apply selected fixes via `ctx.places.update`)
+
 ### v1.4.0 (2026-08-22) — Fully localized to English
 - The plugin's running UI is now fully English: `client/index.html` (title, labels, placeholders, buttons, notifications, empty/error states, welcome guide), server-side error messages returned to the client, and the `trek-plugin.json` manifest (display name **Find Places**, description, `amap_key` setting label/placeholder)
 - Data-matching strings — the Amap `type`-field regexes used for filtering, the emoji-by-category lookup, and the built-in `CITY_NAMES` list used for city inference — stay in Chinese, since they match text Amap's API always returns in Chinese regardless of UI language
