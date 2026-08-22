@@ -121,19 +121,28 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
-### v1.5.2 (2026-08-22) — Coordinate scan still timing out
-- v1.5.1's batching still timed out: `/coord-scan` re-ran city detection (which itself makes Amap network calls) on *every* batch, so even a small batch could add up to several sequential round-trips per request
-- City is now detected once (on the first batch) and passed back by the client on subsequent batches instead of being re-detected
-- Batch size dropped to 1 place per request (was 6) for the safest possible margin, and each Amap call now has a 6s timeout so a single slow request fails fast instead of hanging the whole scan
+### v1.5.3 (2026-08-22) — Coordinate fix: search by the Chinese name first
+- Amap's database is Chinese-first; a place name that's bilingual ("Forbidden City 故宫") or fully English/pinyin searched as-is against Amap often missed or matched poorly
+- `/coord-scan` now extracts the longest Chinese-character run from the place name and searches Amap with that instead of the full name — e.g. "Forbidden City 故宫" searches as "故宫"; a fully English/pinyin name (no Chinese characters) falls back to searching the full name as before
 
-### v1.5.1 (2026-08-22) — Fix coordinate scan timeout
-- `/coord-scan` scanned every trip place in one request; trips with more than a handful of places could exceed the client's request timeout ("Request error: timeout of 8000ms exceeded") before the scan finished
-- Scan is now paginated (`offset`/`limit`, default batch of 6 places per request) — the client loops through batches automatically, showing scan progress, so no single request blocks for long regardless of trip size
+### v1.5.2 (2026-08-22) — Coordinate fix: stop matching the wrong same-named place
+- Reported issue: "Fix coordinates" sometimes swapped a place's coordinates for a *different* place that happened to share its name (a chain branch, a same-named spot in another district) — the scan searched Amap by keyword only and trusted whatever result came back first
+- When the place already has coordinates, the scan now does a proximity search around those coordinates (5km radius, sorted by distance) instead of a blind keyword search, so a same-named result far from where the place actually is won't be picked
+- Among the returned candidates, an exact or partial name match is now preferred over just taking the first result, for both the proximity search and the keyword-only search (used when a place has no coordinates yet)
+- Now configurable: two new settings, **Fix coordinates: search near existing coordinates first** (`coord_scan_proximity`, on/off, default on) and **Fix coordinates: search radius around existing coordinates** (`coord_scan_radius`, 1000-20000m, default 5000m) — turn proximity search off to fall back to a plain keyword search, or tune the radius
+- If no matching name is found within range, the place is skipped rather than fixed with a guess — conservative by design, consistent with the rest of the preview-then-confirm flow
+
+### v1.5.1 (2026-08-22) — Coordinate scan: tighter timeout budget + concurrent batches
+- Still-reported `Request error: timeout of 8000ms exceeded` root cause: the 6s per-Amap-call timeout left too little headroom under the client's 8s request timeout once city detection (on the first batch) and the scan call were counted together — reduced to 4s per Amap call so a full batch reliably finishes within the client's window
+- `/coord-scan` batches now scan concurrently instead of one place at a time — a batch's time is bounded by its slowest single request, not the sum of all of them
+- New setting **Fix coordinates: parallel Amap requests per batch** (`coord_scan_concurrency`, 1-5, default 3) lets you tune how many places are scanned per batch — lower it if your Amap key hits rate limits, raise it for faster scans
 
 ### v1.5.0 (2026-08-22) — One-click coordinate fix
 - New **🛠️ Fix coordinates** button: scans every place already in the trip, re-searches Amap by name to get a fresh GCJ-02→WGS-84 coordinate, and shows a preview list of any place whose stored coordinates drifted more than ~50m (or never had coordinates)
 - Nothing is written automatically — each row shows old vs. new coordinates and the matched Amap result, with a checkbox (unchecked by default when the Amap name match looks uncertain) so you confirm before applying
 - New server routes `GET /coord-scan` (preview) and `POST /coord-fix` (apply selected fixes via `ctx.places.update`)
+- Scan is paginated (`offset`/`limit`, default batch of 1 place per request) — the client loops through batches automatically, showing scan progress, so no single request blocks for long regardless of trip size, and each Amap call has a 6s timeout so a single slow request fails fast instead of hanging the whole scan
+- City is detected once (on the first batch) and passed back by the client on subsequent batches instead of being re-detected on every batch
 
 ### v1.4.0 (2026-08-22) — Fully localized to English
 - The plugin's running UI is now fully English: `client/index.html` (title, labels, placeholders, buttons, notifications, empty/error states, welcome guide), server-side error messages returned to the client, and the `trek-plugin.json` manifest (display name **Find Places**, description, `amap_key` setting label/placeholder)

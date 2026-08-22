@@ -4,7 +4,7 @@
   "description": "Search Amap (高德地图) POIs right inside TREK — restaurants, sights, hidden gems — and copy details or add them to your trip in one click, with coordinates, map link & phone included automatically.",
   "icon": "Search",
   "author": "imusic-487",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "apiVersion": 1,
   "trek": ">=3.4.0 <4.0.0",
   "type": "trip-page",
@@ -24,6 +24,48 @@
       "placeholder": "Get one from console.amap.com (Web Service type)",
       "required": true,
       "secret": true
+    },
+    {
+      "key": "coord_scan_concurrency",
+      "scope": "user",
+      "label": "Fix coordinates: parallel Amap requests per batch",
+      "input_type": "select",
+      "options": [
+        { "value": "1", "label": "1 (sequential, safest)" },
+        { "value": "2", "label": "2" },
+        { "value": "3", "label": "3 (default)" },
+        { "value": "4", "label": "4" },
+        { "value": "5", "label": "5 (fastest, needs headroom on your Amap key's QPS quota)" }
+      ],
+      "hint": "Higher values scan faster but send more simultaneous requests to Amap — lower this if your key hits rate limits.",
+      "required": false
+    },
+    {
+      "key": "coord_scan_proximity",
+      "scope": "user",
+      "label": "Fix coordinates: search near existing coordinates first",
+      "input_type": "select",
+      "options": [
+        { "value": "on", "label": "On (default) — search near the place's current coordinates" },
+        { "value": "off", "label": "Off — search by name only, like a plain Amap keyword search" }
+      ],
+      "hint": "Prevents same-named places elsewhere (chain branches, same-named spots in another district) from being picked when a place already has coordinates.",
+      "required": false
+    },
+    {
+      "key": "coord_scan_radius",
+      "scope": "user",
+      "label": "Fix coordinates: search radius around existing coordinates (meters)",
+      "input_type": "select",
+      "options": [
+        { "value": "1000", "label": "1000m" },
+        { "value": "3000", "label": "3000m" },
+        { "value": "5000", "label": "5000m (default)" },
+        { "value": "10000", "label": "10000m" },
+        { "value": "20000", "label": "20000m" }
+      ],
+      "hint": "Only used when the setting above is On. Places with no matching result within this radius are skipped rather than fixed with a guess.",
+      "required": false
     }
   ]
 }

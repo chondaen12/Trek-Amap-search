@@ -723,8 +723,8 @@
         })
       }
 
-      // v1.5.2: 一次只扫 1 个地点——批量再小也可能因高德单次请求延迟叠加超时，逐个来最稳妥
-      const COORD_SCAN_BATCH = 1
+      // v1.5.3: 批大小（即并发数）由服务端按用户设置里的 coord_scan_concurrency 决定，
+      // 客户端不再传 limit——只管顺着 nextOffset 循环拉批次
       async function openCoordFix() {
         if (!tripId) { trek.notify('error', 'No trip detected'); return }
         const seq = ++coordScanSeq
@@ -736,7 +736,7 @@
         try {
           while (true) {
             coordFixBody.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:8px 0"><span class="btn-icon">${ICON_LOADER}</span> Scanning trip places against Amap… ${total !== null ? `(${Math.min(offset, total)}/${total})` : ''}</div>`
-            let url = '/coord-scan?tripId=' + encodeURIComponent(tripId) + '&offset=' + offset + '&limit=' + COORD_SCAN_BATCH
+            let url = '/coord-scan?tripId=' + encodeURIComponent(tripId) + '&offset=' + offset
             if (offset > 0) url += '&city=' + encodeURIComponent(cityParam || '')
             const res = await trek.invoke(url)
             if (seq !== coordScanSeq) return  // 面板被关闭/重新打开，旧扫描作废

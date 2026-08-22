@@ -109,25 +109,61 @@ function distanceMeters(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+// 从地点名里提取最长的连续中文片段（高德库以中文为主，中英混排/纯英文名直接拿去搜命中率很低）
+// 无中文片段（纯英文名等）时返回 null，调用方原样退回用整个 place.name 搜索
+function extractChineseName(name) {
+  const matches = String(name || '').match(/[一-鿿]+/g)
+  if (!matches || !matches.length) return null
+  return matches.reduce((a, b) => (b.length > a.length ? b : a))
+}
+
 // 用地点名重新搜索高德，判断该地点坐标是否需要修复（供 /coord-scan 分批调用）
 // 返回 null 表示该地点无需提醒（搜不到 / 无坐标结果 / 新旧坐标相差 <=50m）
-async function scanPlaceCoord(place, key, city) {
+// v1.5.2: 重名地点（连锁店、同名景点分布在不同城市/城区）纯关键字搜索经常把结果排到别的分店，
+// "修复坐标"却把地点换到了不相关的地方。已有旧坐标时改用"周边搜索"（围绕旧坐标 5km 内按距离排序），
+// 并在候选列表里优先挑名称对得上的那条，而不是盲目相信排第一的结果
+// v1.5.3: 地点名优先取其中的中文片段去搜——高德库以中文为主，中英混排/音译名直接搜命中率低，
+// 没有中文片段（纯英文名）时才退回用完整 place.name 搜索
+// proximityRadius: 围绕旧坐标搜索的半径（米）；传 0/false 关闭周边搜索、始终用关键字搜索——
+// 两者均由用户在设置里的 coord_scan_proximity/coord_scan_radius 决定，供不放心 around 接口
+// 或希望搜索范围更小/更大的用户自行调整
+async function scanPlaceCoord(place, key, city, proximityRadius) {
+  const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
+  const useProximity = hasOld && proximityRadius > 0
+  const keywords = extractChineseName(place.name) || place.name
   let data
   try {
-    const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
-    if (city) params.set('city', city)
-    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(6000) })
-    data = await res.json()
+    if (useProximity) {
+      const gcj = wgs84ToGcj02(Number(place.lng), Number(place.lat))
+      const params = new URLSearchParams({
+        key,
+        keywords,
+        location: `${gcj.lng},${gcj.lat}`,
+        radius: String(proximityRadius),
+        sortrule: 'distance',
+        offset: '10',
+        page: '1',
+      })
+      const res = await fetch(`https://restapi.amap.com/v3/place/around?${params}`, { signal: AbortSignal.timeout(4000) })
+      data = await res.json()
+    } else {
+      const params = new URLSearchParams({ key, keywords, offset: '10', page: '1' })
+      if (city) params.set('city', city)
+      const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(4000) })
+      data = await res.json()
+    }
   } catch {
     return null
   }
   if (String(data.status) !== '1' || !data.pois || !data.pois.length) return null
-  const candidate = data.pois[0]
+  // 候选列表按名称匹配优先排序（around 按距离排、text 按相关度排，两者都可能把重名的别处结果排最前）
+  const candidate = data.pois.find(p => p.name === place.name)
+    || data.pois.find(p => p.name && (p.name.includes(place.name) || place.name.includes(p.name)))
+    || data.pois[0]
   const [gLng, gLat] = String(candidate.location || '').split(',').map(Number)
   if (!Number.isFinite(gLng) || !Number.isFinite(gLat)) return null
   const wgs = gcj02ToWgs84(gLng, gLat)
 
-  const hasOld = Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))
   const distanceM = hasOld
     ? Math.round(distanceMeters(Number(place.lat), Number(place.lng), wgs.lat, wgs.lng))
     : null
@@ -184,7 +220,7 @@ async function regeoCity(lng, lat, ctx) {
     // 存储坐标按 WGS-84 处理，转回 GCJ-02 再查高德（高德用火星坐标）
     const gcj = wgs84ToGcj02(Number(lng), Number(lat))
     const url = `https://restapi.amap.com/v3/geocode/regeo?location=${gcj.lng},${gcj.lat}&key=${key}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
     const d = await res.json()
     if (String(d.status) !== '1' || !d.regeocode) return null
     const ac = d.regeocode.addressComponent || {}
@@ -363,11 +399,16 @@ module.exports = definePlugin({
       },
     },
 
-    // 坐标体检：逐个用地点名重新搜索高德，比对现有坐标与搜索结果换算出的 WGS-84 坐标
+    // 坐标体检：用地点名重新搜索高德，比对现有坐标与搜索结果换算出的 WGS-84 坐标
     // 只返回偏移明显（或原本缺坐标）的地点，交由前端预览确认后再调用 /coord-fix 写入
-    // v1.5.1: 按 offset/limit 分批扫描——一次请求扫全部地点在地点较多的行程里会超过客户端 8s 超时，
-    // 改成前端循环拉小批次（默认每批 6 个），累积展示进度，避免整段请求阻塞超时
-    // GET /api/plugins/amap-search/coord-scan?tripId=123&offset=0&limit=6
+    // v1.5.1: 按 offset 分批扫描——一次请求扫全部地点在地点较多的行程里会超过客户端 8s 超时，
+    // 改成前端循环拉批次，累积展示进度，避免整段请求阻塞超时
+    // v1.5.3: 每批内部并发扫描（而非逐个 await），批大小由用户在设置里配置的
+    // coord_scan_concurrency 决定（服务端夹紧到 1-5），而不是由客户端传入的 limit 决定，
+    // 避免用户端传任意大小打满高德配额或拖垮单次请求耗时
+    // v1.5.2 的"周边搜索"现由 coord_scan_proximity（开关）与 coord_scan_radius（半径，米）两个设置
+    // 控制，默认保持 v1.5.2 引入时的行为（开启，5km）
+    // GET /api/plugins/amap-search/coord-scan?tripId=123&offset=0
     {
       method: 'GET',
       path: '/coord-scan',
@@ -378,7 +419,13 @@ module.exports = definePlugin({
           return json({ ok: false, error: 'Missing tripId' })
         }
         const offset = Math.max(0, parseInt(req.query && req.query.offset, 10) || 0)
-        const limit = Math.min(20, Math.max(1, parseInt(req.query && req.query.limit, 10) || 1))
+        const concurrency = Math.min(5, Math.max(1, parseInt(await ctx.settings.get('coord_scan_concurrency'), 10) || 3))
+        // 已有坐标时是否改用"周边搜索"（而非纯关键字搜索），以及周边搜索的半径——均可在设置里关闭/调整，
+        // 默认沿用 v1.5.2 引入时的行为（开启，5km）
+        const proximityEnabled = (await ctx.settings.get('coord_scan_proximity')) !== 'off'
+        const proximityRadius = proximityEnabled
+          ? Math.min(20000, Math.max(200, parseInt(await ctx.settings.get('coord_scan_radius'), 10) || 5000))
+          : 0
         const key = await ctx.settings.get('amap_key')
         if (!key) {
           return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
@@ -400,14 +447,12 @@ module.exports = definePlugin({
           try { city = (await detectTripCity(tripId, ctx)).city } catch {}
         }
 
-        const batch = places.slice(offset, offset + limit)
-        const results = []
-        // 逐个请求（不并发），避免瞬时打满高德配额；每批数量小，单次请求耗时可控
-        for (const place of batch) {
-          const hit = await scanPlaceCoord(place, key, city)
-          if (hit) results.push(hit)
-        }
-        const nextOffset = offset + limit < places.length ? offset + limit : null
+        const batch = places.slice(offset, offset + concurrency)
+        // v1.5.3: 批内并发请求高德——单批耗时取决于批内最慢的一次请求，而不是所有请求耗时相加,
+        // 让 concurrency > 1 时也能稳稳落在客户端超时窗口内
+        const hits = await Promise.all(batch.map(place => scanPlaceCoord(place, key, city, proximityRadius)))
+        const results = hits.filter(Boolean)
+        const nextOffset = offset + concurrency < places.length ? offset + concurrency : null
         return json({ ok: true, city, total: places.length, offset, nextOffset, results })
       },
     },
