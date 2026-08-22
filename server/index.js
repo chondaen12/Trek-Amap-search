@@ -116,7 +116,7 @@ async function scanPlaceCoord(place, key, city) {
   try {
     const params = new URLSearchParams({ key, keywords: place.name, offset: '1', page: '1' })
     if (city) params.set('city', city)
-    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(6000) })
+    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal: AbortSignal.timeout(4000) })
     data = await res.json()
   } catch {
     return null
@@ -184,7 +184,7 @@ async function regeoCity(lng, lat, ctx) {
     // 存储坐标按 WGS-84 处理，转回 GCJ-02 再查高德（高德用火星坐标）
     const gcj = wgs84ToGcj02(Number(lng), Number(lat))
     const url = `https://restapi.amap.com/v3/geocode/regeo?location=${gcj.lng},${gcj.lat}&key=${key}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) })
     const d = await res.json()
     if (String(d.status) !== '1' || !d.regeocode) return null
     const ac = d.regeocode.addressComponent || {}
@@ -363,11 +363,14 @@ module.exports = definePlugin({
       },
     },
 
-    // 坐标体检：逐个用地点名重新搜索高德，比对现有坐标与搜索结果换算出的 WGS-84 坐标
+    // 坐标体检：用地点名重新搜索高德，比对现有坐标与搜索结果换算出的 WGS-84 坐标
     // 只返回偏移明显（或原本缺坐标）的地点，交由前端预览确认后再调用 /coord-fix 写入
-    // v1.5.1: 按 offset/limit 分批扫描——一次请求扫全部地点在地点较多的行程里会超过客户端 8s 超时，
-    // 改成前端循环拉小批次（默认每批 6 个），累积展示进度，避免整段请求阻塞超时
-    // GET /api/plugins/amap-search/coord-scan?tripId=123&offset=0&limit=6
+    // v1.5.1: 按 offset 分批扫描——一次请求扫全部地点在地点较多的行程里会超过客户端 8s 超时，
+    // 改成前端循环拉批次，累积展示进度，避免整段请求阻塞超时
+    // v1.5.3: 每批内部并发扫描（而非逐个 await），批大小由用户在设置里配置的
+    // coord_scan_concurrency 决定（服务端夹紧到 1-5），而不是由客户端传入的 limit 决定，
+    // 避免用户端传任意大小打满高德配额或拖垮单次请求耗时
+    // GET /api/plugins/amap-search/coord-scan?tripId=123&offset=0
     {
       method: 'GET',
       path: '/coord-scan',
@@ -378,7 +381,7 @@ module.exports = definePlugin({
           return json({ ok: false, error: 'Missing tripId' })
         }
         const offset = Math.max(0, parseInt(req.query && req.query.offset, 10) || 0)
-        const limit = Math.min(20, Math.max(1, parseInt(req.query && req.query.limit, 10) || 1))
+        const concurrency = Math.min(5, Math.max(1, parseInt(await ctx.settings.get('coord_scan_concurrency'), 10) || 3))
         const key = await ctx.settings.get('amap_key')
         if (!key) {
           return json({ ok: false, error: 'Please set your Amap Web Service key in Settings → Plugins → Find Places' })
@@ -400,14 +403,12 @@ module.exports = definePlugin({
           try { city = (await detectTripCity(tripId, ctx)).city } catch {}
         }
 
-        const batch = places.slice(offset, offset + limit)
-        const results = []
-        // 逐个请求（不并发），避免瞬时打满高德配额；每批数量小，单次请求耗时可控
-        for (const place of batch) {
-          const hit = await scanPlaceCoord(place, key, city)
-          if (hit) results.push(hit)
-        }
-        const nextOffset = offset + limit < places.length ? offset + limit : null
+        const batch = places.slice(offset, offset + concurrency)
+        // v1.5.3: 批内并发请求高德——单批耗时取决于批内最慢的一次请求，而不是所有请求耗时相加,
+        // 让 concurrency > 1 时也能稳稳落在客户端超时窗口内
+        const hits = await Promise.all(batch.map(place => scanPlaceCoord(place, key, city)))
+        const results = hits.filter(Boolean)
+        const nextOffset = offset + concurrency < places.length ? offset + concurrency : null
         return json({ ok: true, city, total: places.length, offset, nextOffset, results })
       },
     },

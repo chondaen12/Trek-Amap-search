@@ -121,6 +121,11 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Changelog
 
+### v1.5.1 (2026-08-22) — Coordinate scan: tighter timeout budget + concurrent batches
+- Still-reported `Request error: timeout of 8000ms exceeded` root cause: the 6s per-Amap-call timeout left too little headroom under the client's 8s request timeout once city detection (on the first batch) and the scan call were counted together — reduced to 4s per Amap call so a full batch reliably finishes within the client's window
+- `/coord-scan` batches now scan concurrently instead of one place at a time — a batch's time is bounded by its slowest single request, not the sum of all of them
+- New setting **Fix coordinates: parallel Amap requests per batch** (`coord_scan_concurrency`, 1-5, default 3) lets you tune how many places are scanned per batch — lower it if your Amap key hits rate limits, raise it for faster scans
+
 ### v1.5.0 (2026-08-22) — One-click coordinate fix
 - New **🛠️ Fix coordinates** button: scans every place already in the trip, re-searches Amap by name to get a fresh GCJ-02→WGS-84 coordinate, and shows a preview list of any place whose stored coordinates drifted more than ~50m (or never had coordinates)
 - Nothing is written automatically — each row shows old vs. new coordinates and the matched Amap result, with a checkbox (unchecked by default when the Amap name match looks uncertain) so you confirm before applying
