@@ -99,7 +99,7 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 
 ## Compatibility
 
-- Requires **TREK >=3.4.0** (`>=3.4.0 <4.0.0`)
+- Requires **TREK >=3.4.0** (`>=3.4.0 <5.0.0`) — TREK 4.x introduced no breaking changes to the plugin API
 - No native modules, no paid API beyond Amap's API quota (personal-developer: 500,000 calls/day)
 
 ## Support
@@ -120,6 +120,10 @@ TREK shows this list to the admin at activation — exactly three permissions, a
 - [x] ~~Empty-state copy + retry button + key-hint link~~ (v1.3.15 empty state + retry; v1.3.25 key-hint link)
 
 ## Changelog
+
+### v1.5.4 (2026-08-30) — Support TREK 4.x
+
+TREK shipped a v4.0.0 major release with no breaking changes to the plugin API, but this plugin's manifest still declared `trek: ">=3.4.0 <4.0.0"` — since TREK 3.4.0, the server refuses to install/activate a plugin whose declared range excludes the running version, so upgrading to TREK 4.x broke the plugin. Widened the declared range to `>=3.4.0 <5.0.0`.
 
 ### v1.5.3 (2026-08-22) — Coordinate fix: search by the Chinese name first
 - Amap's database is Chinese-first; a place name that's bilingual ("Forbidden City 故宫") or fully English/pinyin searched as-is against Amap often missed or matched poorly
