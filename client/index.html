@@ -814,6 +814,42 @@ body.trek-ui {
       let pagerEl = null         // v1.3.10: pager 持久引用——innerHTML 会销毁节点，用引用避免 getElementById 返回 null
       let categories = []        // 分类列表（{id, name}）
       let categoryMap = {}       // id -> name 映射
+      let language = 'zh-CN'
+      const L = (zh, en) => language === 'en' ? en : zh
+
+      function applyLanguage() {
+        document.documentElement.lang = language
+        document.title = L('找地方', 'Find Places')
+        document.querySelector('h2').textContent = L('🗺️ 找地方', '🗺️ Find Places')
+        const fix = document.getElementById('btn-coord-fix')
+        fix.innerHTML = L('🛠️ 修复坐标', '🛠️ Fix coordinates')
+        fix.title = L('重新扫描行程已有地点，修复坐标偏移', 'Rescan existing trip places and correct coordinate offsets')
+        document.querySelector('#coord-fix-panel div[style*="font-weight:600"]').textContent = L('🛠️ 修复坐标', '🛠️ Fix coordinates')
+        document.getElementById('q').placeholder = L('搜索关键词，如：故宫 / 长城 / 西湖', 'Search, e.g. Forbidden City / Great Wall / West Lake')
+        document.getElementById('city').placeholder = L('城市', 'City')
+        document.getElementById('city-auto-tag').textContent = L('✨ 自动识别', '✨ Auto-detected')
+        document.querySelector('#btn-search .btn-label').textContent = L('搜索', 'Search')
+        const labels = document.querySelectorAll('#filter-sort-row > span')
+        labels[0].textContent = L('类型', 'Type'); labels[1].textContent = L('排序', 'Sort')
+        const filter = document.getElementById('filter-select').options
+        ;['全部','餐饮','景点','购物','住宿','其他'].forEach((v, i) => { filter[i].textContent = L(v, ['All','Food & drink','Attractions','Shopping','Hotels','Other'][i]) })
+        const sort = document.getElementById('sort-select').options
+        ;['默认','评分 高→低','人均 低→高'].forEach((v, i) => { sort[i].textContent = L(v, ['Default','Rating: high to low','Cost: low to high'][i]) })
+        document.getElementById('btn-more').textContent = L('加载更多', 'Load more')
+        document.querySelector('.search-row + div').textContent = L('💡 城市自动识别可手动改 · 搜索后可按类型筛选、按评分排序 · 添加后高德链接自动存入「网站」', '💡 You can edit the auto-detected city · Filter by type or sort by rating · Amap links are saved to “Website” when added')
+        const footer = document.querySelector('#results + div')
+        footer.childNodes[0].textContent = L('💡 补充官网/小红书/抖音等链接：编辑地点「备注」，一行一个。 ', '💡 To add official-site or social links, edit the place “Notes” and put one link per line. ')
+        document.getElementById('key-hint').innerHTML = L('🔑 还没有 Key？<a href="https://lbs.amap.com/api/webservice/guide/create-project/get-key" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">前往高德开放平台申请</a>（选择「Web 服务」类型），个人开发者配额 50 万次/天。', '🔑 No key yet? <a href="https://lbs.amap.com/api/webservice/guide/create-project/get-key" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">Apply on the Amap Open Platform</a> (choose “Web Service”); individual developers receive 500,000 requests/day.')
+      }
+
+      async function loadLanguage() {
+        try {
+          const res = await trek.invoke('/language')
+          language = res && res.language === 'en' ? 'en' : 'zh-CN'
+        } catch (e) { language = 'zh-CN' }
+        applyLanguage()
+        showWelcomeGuide()
+      }
 
       // 页面加载时获取分类列表
       async function loadCategories() {
@@ -860,18 +896,18 @@ body.trek-ui {
           const res = await trek.invoke('/trip-city?tripId=' + encodeURIComponent(tripId))
           if (res && res.ok && res.city) {
             cityInput.value = res.city
-            cityInput.placeholder = res.city + '（自动识别，可修改）'
+            cityInput.placeholder = res.city + L('（自动识别，可修改）', ' (auto-detected; editable)')
             // v1.3.9: ✨ 自动识别标签持续可见（直到用户手动修改）
             if (tag) { tag.style.display = ''; tag.dataset.auto = '1' }
           } else {
-            cityInput.placeholder = '未识别到城市，可手动填写'
+            cityInput.placeholder = L('未识别到城市，可手动填写', 'City not detected; enter it manually')
             if (tag) tag.style.display = 'none'
           }
         } catch (e) { /* 忽略，保持现状 */ }
         // v1.3.1: 识别到城市时给一次轻提示（审查 3.5）——v1.3.9: ✨ 标签为主，toast 保留首次提醒
         if (cityInput.dataset.notified !== '1' && cityInput.value) {
           cityInput.dataset.notified = '1'
-          try { trek.notify('info', '已自动识别城市：' + cityInput.value + '，如不正确请更改') } catch (e) {}
+          try { trek.notify('info', L('已自动识别城市：', 'City auto-detected: ') + cityInput.value + L('，如不正确请更改', '. Change it if needed.')) } catch (e) {}
         }
       }
 
@@ -913,17 +949,17 @@ body.trek-ui {
         box.innerHTML = `
           <div style="text-align:center; padding:32px 16px">
             <div style="font-size:40px; margin-bottom:10px">🗺️</div>
-            <div style="font-size:14px; font-weight:600; margin-bottom:12px">三步用起来</div>
+            <div style="font-size:14px; font-weight:600; margin-bottom:12px">${L('三步用起来', 'Get started in three steps')}</div>
             <div style="text-align:left; max-width:300px; margin:0 auto; font-size:12px; line-height:1.8; opacity:0.85">
-              <div style="display:flex; gap:8px; align-items:flex-start; background:rgba(250,204,21,0.12); border:1px solid rgba(250,204,21,0.35); border-radius:8px; padding:8px 10px; margin-bottom:10px"><span style="flex:none">🔑</span><span><b>先填 Key</b>：TREK <b>设置 → 插件 → 找地方</b> → 填「高德 Web 服务 Key」<br>还没 Key？<a href="https://console.amap.com/" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">console.amap.com</a> 免费申请，类型选「Web 服务」</span></div>
-              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">1️⃣</span><span>打开任意行程 → 顶部 tab「找地方」（就是本页）</span></div>
-              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">2️⃣</span><span>输入关键词（如：故宫/长城/西湖），城市自动识别可改</span></div>
-              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">3️⃣</span><span>一键复制地址，或添加进当前行程（坐标/地图链接/电话自动带上）</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start; background:rgba(250,204,21,0.12); border:1px solid rgba(250,204,21,0.35); border-radius:8px; padding:8px 10px; margin-bottom:10px"><span style="flex:none">🔑</span><span>${L('<b>先填 Key</b>：TREK <b>设置 → 插件 → 找地方</b> → 填「高德 Web 服务 Key」<br>还没 Key？', '<b>Add a key first</b>: TREK <b>Settings → Plugins → Find Places</b> → enter your “Amap Web Service Key”.<br>No key?')}<a href="https://console.amap.com/" target="_blank" rel="noopener" style="color:var(--trek-info,#2563eb)">console.amap.com</a> ${L('免费申请，类型选「Web 服务」', ' Apply free and choose “Web Service”.')}</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">1️⃣</span><span>${L('打开任意行程 → 顶部 tab「找地方」（就是本页）', 'Open any trip → choose the “Find Places” tab (this page)')}</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">2️⃣</span><span>${L('输入关键词（如：故宫/长城/西湖），城市自动识别可改', 'Enter a keyword (e.g. Forbidden City / Great Wall / West Lake); you can edit the detected city')}</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start"><span style="flex:none">3️⃣</span><span>${L('一键复制地址，或添加进当前行程（坐标/地图链接/电话自动带上）', 'Copy the address or add it to this trip with coordinates, map link, and phone included')}</span></div>
             </div>
-            <div style="font-size:11px; opacity:0.55; margin-top:14px">💡 在上方输入框输入地点关键词，点「搜索」开始</div>
+            <div style="font-size:11px; opacity:0.55; margin-top:14px">${L('💡 在上方输入框输入地点关键词，点「搜索」开始', '💡 Enter a place above and select “Search” to begin')}</div>
           </div>`
       }
-      showWelcomeGuide()
+      loadLanguage()
 
       function fullAddress(p) {
         return [p.pname, p.cityname, p.adname, p.address].filter(Boolean).join('')
@@ -1052,7 +1088,7 @@ body.trek-ui {
         const raw = Array.isArray(p.opentime) ? p.opentime.join('；') : String(p.opentime)
         const segs = raw.split(/[；;]/).map(s => s.trim()).filter(Boolean)
         if (!segs.length) return ''
-        return segs.length === 1 ? segs[0] : segs[0] + ' 等' + segs.length + '段'
+        return segs.length === 1 ? segs[0] : segs[0] + L(' 等', ' and ') + segs.length + L('段', ' more')
       }
 
       // v1.1: 两点距离（km，Haversine）
@@ -1104,7 +1140,7 @@ body.trek-ui {
       async function copyText(text) {
         try {
           await navigator.clipboard.writeText(text)
-          trek.notify('success', '已复制：' + text.slice(0, 30) + (text.length > 30 ? '…' : ''))
+          trek.notify('success', L('已复制：', 'Copied: ') + text.slice(0, 30) + (text.length > 30 ? '…' : ''))
         } catch (e) {
           const ta = document.createElement('textarea')
           ta.value = text
@@ -1112,7 +1148,7 @@ body.trek-ui {
           ta.select()
           document.execCommand('copy')
           document.body.removeChild(ta)
-          trek.notify('success', '已复制')
+          trek.notify('success', L('已复制', 'Copied'))
         }
       }
 
@@ -1140,7 +1176,7 @@ body.trek-ui {
         // 自动匹配分类（返回名称 → 从真实分类列表解析 id）
         const autoCatName = autoMatchCategory(p)
         const autoCatId = resolveCategoryIdByName(categories, autoCatName)
-        const autoCatLabel = autoCatId && categoryMap[autoCatId] ? categoryMap[autoCatId] : (autoCatName || '其他')
+        const autoCatLabel = autoCatId && categoryMap[autoCatId] ? categoryMap[autoCatId] : (autoCatName || L('其他', 'Other'))
         // 生成分类下拉选项
         let catOptions = categories.map(c => 
           `<option value="${c.id}" ${c.id === autoCatId ? 'selected' : ''}>${esc(c.name)}</option>`
@@ -1174,7 +1210,7 @@ body.trek-ui {
               <!-- 分类选择区 -->
               <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--trek-border, rgba(128,128,128,0.15))">
                 <div style="display:flex; align-items:center; gap:6px; font-size:12px">
-                  <span style="opacity:0.7">将添加为：</span>
+                  <span style="opacity:0.7">${L('将添加为：', 'Add as:')}</span>
                   <span class="poi-tag" style="background:var(--trek-primary, #2563eb); color:white">${esc(autoCatLabel)}</span>
                   <select class="trek-select" data-category-select="${i}" style="flex:1; min-width:100px; font-size:12px">
                     ${catOptions}
@@ -1183,10 +1219,10 @@ body.trek-ui {
               </div>
             </div>
             <div class="poi-actions">
-              <button class="trek-btn trek-btn--secondary" data-copy="${i}" title="复制地址" aria-label="复制地址"><span class="btn-icon">${ICON_COPY}</span><span class="btn-label">复制地址</span></button>
+              <button class="trek-btn trek-btn--secondary" data-copy="${i}" title="${L('复制地址', 'Copy address')}" aria-label="${L('复制地址', 'Copy address')}"><span class="btn-icon">${ICON_COPY}</span><span class="btn-label">${L('复制地址', 'Copy address')}</span></button>
               ${addedNames.has(p.name)
-                ? `<button class="trek-btn trek-btn--primary" disabled style="opacity:0.6" title="已在行程中" aria-label="已在行程中"><span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">已在行程</span></button>`
-                : `<button class="trek-btn trek-btn--primary" data-add="${i}" title="添加进行程" aria-label="添加进行程"><span class="btn-icon">${ICON_ADD}</span><span class="btn-label">添加进行程</span></button>`}
+                ? `<button class="trek-btn trek-btn--primary" disabled style="opacity:0.6" title="${L('已在行程中', 'Already in trip')}" aria-label="${L('已在行程中', 'Already in trip')}"><span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">${L('已在行程', 'In trip')}</span></button>`
+                : `<button class="trek-btn trek-btn--primary" data-add="${i}" title="${L('添加进行程', 'Add to trip')}" aria-label="${L('添加进行程', 'Add to trip')}"><span class="btn-icon">${ICON_ADD}</span><span class="btn-label">${L('添加进行程', 'Add to trip')}</span></button>`}
             </div>
           </div>
         `
@@ -1205,7 +1241,7 @@ body.trek-ui {
             if (!p) return
             const addr = fullAddress(p)
             const amapLink = p.id ? `https://www.amap.com/place/${p.id}` : ''
-            const text = `${p.name}\n${addr}\n经纬度: ${p.location || '无'}${amapLink ? '\n地图: ' + amapLink : ''}\n类型: ${p.type || ''}${p.tel ? '\n电话: ' + p.tel : ''}${p.rating ? '\n评分: ' + p.rating : ''}${p.cost ? '\n人均: ¥' + p.cost : ''}`
+            const text = `${p.name}\n${addr}\n${L('经纬度: ', 'Coordinates: ')}${p.location || L('无', 'None')}${amapLink ? '\n' + L('地图: ', 'Map: ') + amapLink : ''}\n${L('类型: ', 'Type: ')}${p.type || ''}${p.tel ? '\n' + L('电话: ', 'Phone: ') + p.tel : ''}${p.rating ? '\n' + L('评分: ', 'Rating: ') + p.rating : ''}${p.cost ? '\n' + L('人均: ¥', 'Average: ¥') + p.cost : ''}`
             copyText(text)
             return
           }
@@ -1213,29 +1249,29 @@ body.trek-ui {
           if (addBtn) {
             const poi = renderedPois[Number(addBtn.dataset.add)]
             if (!poi) return
-            if (!tripId) { trek.notify('error', '未检测到当前行程'); return }
+            if (!tripId) { trek.notify('error', L('未检测到当前行程', 'No current trip detected')); return }
             // 获取用户选择的分类
             const catSelect = document.querySelector(`select[data-category-select="${addBtn.dataset.add}"]`)
             const categoryId = catSelect ? Number(catSelect.value) : null
-            addBtn.disabled = true; addBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">添加中</span>`; addBtn.setAttribute('aria-label', '添加中')
+            addBtn.disabled = true; addBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">${L('添加中', 'Adding')}</span>`; addBtn.setAttribute('aria-label', L('添加中', 'Adding'))
             try {
               const res = await trek.invoke('/add', {
                 method: 'POST',
                 body: JSON.stringify({ tripId: Number(tripId), place: poi, category_id: categoryId }),
               })
               if (res.ok) {
-                trek.notify('success', `已添加「${poi.name}」到行程`)
+                trek.notify('success', L(`已添加「${poi.name}」到行程`, `Added “${poi.name}” to the trip`))
                 addedNames.add(poi.name)
-                addBtn.innerHTML = `<span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">已添加</span>`
-                addBtn.setAttribute('aria-label', '已添加')
+                addBtn.innerHTML = `<span class="btn-icon">${ICON_CHECK}</span><span class="btn-label">${L('已添加', 'Added')}</span>`
+                addBtn.setAttribute('aria-label', L('已添加', 'Added'))
                 addBtn.style.opacity = '0.6'
               } else {
-                trek.notify('error', res.error || '添加失败')
-                addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">添加进行程</span>`; addBtn.setAttribute('aria-label', '添加进行程')
+                trek.notify('error', res.error || L('添加失败', 'Could not add place'))
+                addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">${L('添加进行程', 'Add to trip')}</span>`; addBtn.setAttribute('aria-label', L('添加进行程', 'Add to trip'))
               }
             } catch (err) {
-              trek.notify('error', '请求失败: ' + err.message)
-              addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">添加进行程</span>`; addBtn.setAttribute('aria-label', '添加进行程')
+              trek.notify('error', L('请求失败: ', 'Request failed: ') + err.message)
+              addBtn.disabled = false; addBtn.innerHTML = `<span class="btn-icon">${ICON_ADD}</span><span class="btn-label">${L('添加进行程', 'Add to trip')}</span>`; addBtn.setAttribute('aria-label', L('添加进行程', 'Add to trip'))
             }
           }
         })
@@ -1263,15 +1299,15 @@ body.trek-ui {
         const cityVal = document.getElementById('city').value.trim()
         const filterActive = currentFilter !== 'all' || currentSort !== 'default'
         const btns = []
-        if (filterActive) btns.push('<button class="trek-btn trek-btn--secondary" id="btn-clear-filter">清除筛选</button>')
-        btns.push('<button class="trek-btn trek-btn--secondary" id="btn-new-keyword">换个关键词</button>')
-        if (!cityVal) btns.push('<button class="trek-btn trek-btn--primary" id="btn-pick-city">手动选择城市</button>')
+        if (filterActive) btns.push(`<button class="trek-btn trek-btn--secondary" id="btn-clear-filter">${L('清除筛选', 'Clear filters')}</button>`)
+        btns.push(`<button class="trek-btn trek-btn--secondary" id="btn-new-keyword">${L('换个关键词', 'Try another keyword')}</button>`)
+        if (!cityVal) btns.push(`<button class="trek-btn trek-btn--primary" id="btn-pick-city">${L('手动选择城市', 'Enter a city')}</button>`)
         box.innerHTML = `
           <div style="text-align:center; padding:36px 16px">
             <div style="font-size:44px; margin-bottom:10px">🔍</div>
-            <div style="font-size:14px; font-weight:600; margin-bottom:4px">没找到相关地点</div>
+            <div style="font-size:14px; font-weight:600; margin-bottom:4px">${L('没找到相关地点', 'No matching places found')}</div>
             <!-- v1.3.25: 文案条件修复——filterActive 时提示清筛选（原错误绑定 cityVal，筛选激活但城市为空时不提示） -->
-            <div style="font-size:12px; opacity:0.65; margin-bottom:14px">试试换个关键词${filterActive ? '，或清除筛选' : (!cityVal ? '，或手动填写城市' : '')}</div>
+            <div style="font-size:12px; opacity:0.65; margin-bottom:14px">${L('试试换个关键词', 'Try another keyword')}${filterActive ? L('，或清除筛选', ' or clear the filters') : (!cityVal ? L('，或手动填写城市', ' or enter a city manually') : '')}</div>
             <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap">${btns.join('')}</div>
           </div>`
         const clearBtn = document.getElementById('btn-clear-filter')
@@ -1324,12 +1360,12 @@ body.trek-ui {
         const loaded = currentPois.length
         pager.style.display = 'block'
         if (totalCount > loaded) {
-          info.textContent = `已加载 ${loaded} / ${totalCount} 条`
+          info.textContent = L(`已加载 ${loaded} / ${totalCount} 条`, `Loaded ${loaded} of ${totalCount}`)
           more.style.display = ''
           more.disabled = false
-          more.innerHTML = '加载更多'
+          more.innerHTML = L('加载更多', 'Load more')
         } else {
-          info.textContent = `共 ${loaded} 条`
+          info.textContent = L(`共 ${loaded} 条`, `${loaded} total`)
           more.style.display = 'none'
         }
       }
@@ -1340,7 +1376,7 @@ body.trek-ui {
         box.innerHTML = `<div style="text-align:center; padding:36px 16px">
           <div style="font-size:40px; margin-bottom:10px">😵</div>
           <div style="color:var(--trek-danger,#ef4444); margin-bottom:14px">${msg}</div>
-          <button class="trek-btn trek-btn--primary" id="btn-retry">重试</button>
+          <button class="trek-btn trek-btn--primary" id="btn-retry">${L('重试', 'Retry')}</button>
         </div>`
         const retry = document.getElementById('btn-retry')
         if (retry) retry.addEventListener('click', () => doSearch())
@@ -1356,12 +1392,12 @@ body.trek-ui {
         if (!q) return
         currentPage++
         more.disabled = true
-        more.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">加载中</span>`
+        more.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">${L('加载中', 'Loading')}</span>`
         try {
           const url = '/search?q=' + encodeURIComponent(q) + (city ? '&city=' + encodeURIComponent(city) : '') + '&page=' + currentPage
           const data = await trek.invoke(url)
           if (seq !== requestSeq) return
-          if (!data.ok) { trek.notify('error', data.error || '加载失败'); currentPage--; return }
+          if (!data.ok) { trek.notify('error', data.error || L('加载失败', 'Could not load more')); currentPage--; return }
           const newPois = data.pois || []
           currentPois = currentPois.concat(newPois)
           // v1.3.15: 增量追加——默认视图直接 append 新卡片（事件委托已绑无需重绑），不再整页重建；筛选/排序激活时顺序会变，走全量重建
@@ -1375,17 +1411,17 @@ body.trek-ui {
           updatePager()
         } catch (e) {
           if (seq !== requestSeq) return
-          trek.notify('error', '请求异常: ' + e.message)
+          trek.notify('error', L('请求异常: ', 'Request error: ') + e.message)
           currentPage--
         } finally {
-          if (seq === requestSeq) { more.disabled = false; more.innerHTML = '加载更多' }
+          if (seq === requestSeq) { more.disabled = false; more.innerHTML = L('加载更多', 'Load more') }
         }
       }
 
       async function doSearch() {
         const q = document.getElementById('q').value.trim()
         const city = document.getElementById('city').value.trim()
-        if (!q) { trek.notify('warning', '请输入关键词'); return }
+        if (!q) { trek.notify('warning', L('请输入关键词', 'Enter a search keyword')); return }
         const box = document.getElementById('results-list')   // v1.3.10: 重建区 = results-list（pager 是 #results 静态子元素，不受影响）
         const btn = document.getElementById('btn-search')
         const seq = ++requestSeq
@@ -1393,7 +1429,7 @@ body.trek-ui {
         // v1.3.1: 加载反馈——按钮只显示转圈 icon + 轻提示 + 骨架屏（取消按钮已移除）
         btn.disabled = true
         btn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span>`
-        trek.notify('info', '搜索中…')
+        trek.notify('info', L('搜索中…', 'Searching…'))
         showSkeleton(box)
         try {
           const url = '/search?q=' + encodeURIComponent(q) + (city ? '&city=' + encodeURIComponent(city) : '') + '&page=' + currentPage
@@ -1402,7 +1438,7 @@ body.trek-ui {
           if (!data.ok) {
             if (/key|Key|key/i.test(data.error || '')) { refreshKeyHint(false) }
             // v1.3.15: 错误状态加重试按钮
-            showErrorState(data.error || '搜索失败')
+            showErrorState(data.error || L('搜索失败', 'Search failed'))
             return
           }
           refreshKeyHint(true)
@@ -1425,11 +1461,11 @@ body.trek-ui {
         } catch (e) {
           if (seq !== requestSeq) return
           // v1.3.15: 错误状态加重试按钮
-          showErrorState('请求异常: ' + e.message)
+          showErrorState(L('请求异常: ', 'Request error: ') + e.message)
         } finally {
           if (seq === requestSeq) {
             btn.disabled = false
-            btn.innerHTML = `<span class="btn-icon">${ICON_SEARCH}</span><span class="btn-label">搜索</span>`
+            btn.innerHTML = `<span class="btn-icon">${ICON_SEARCH}</span><span class="btn-label">${L('搜索', 'Search')}</span>`
           }
         }
       }
@@ -1461,38 +1497,38 @@ body.trek-ui {
 
       function coordFixRowHtml(r, i) {
         const isNew = r.oldLat === null
-        const distText = isNew ? '暂无坐标' : `偏移 ${r.distanceM}m`
-        const confidenceTag = r.nameMatch === 'exact' ? '' : (r.nameMatch === 'partial' ? '<span class="poi-tag" title="高德匹配名称仅部分一致">⚠️ 名称部分匹配</span>' : '<span class="poi-tag" title="高德匹配名称差异较大——应用前请仔细核对">❓ 低置信度</span>')
+        const distText = isNew ? L('暂无坐标', 'No coordinates') : L(`偏移 ${r.distanceM}m`, `${r.distanceM}m offset`)
+        const confidenceTag = r.nameMatch === 'exact' ? '' : (r.nameMatch === 'partial' ? `<span class="poi-tag" title="${L('高德匹配名称仅部分一致', 'Amap name is only a partial match')}">${L('⚠️ 名称部分匹配', '⚠️ Partial name match')}</span>` : `<span class="poi-tag" title="${L('高德匹配名称差异较大——应用前请仔细核对', 'The Amap name differs significantly; verify before applying')}">${L('❓ 低置信度', '❓ Low confidence')}</span>`)
         const checked = r.nameMatch !== 'low' ? 'checked' : ''
         return `
           <label style="display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--trek-border, rgba(128,128,128,0.15))">
             <input type="checkbox" data-fix-idx="${i}" ${checked} style="margin-top:3px" />
             <span style="flex:1; min-width:0">
               <div style="font-weight:600; display:flex; gap:6px; align-items:center; flex-wrap:wrap">${esc(r.name)}${confidenceTag}</div>
-              <div style="opacity:0.7; margin-top:2px">${isNew ? '' : `旧: ${r.oldLat.toFixed(6)}, ${r.oldLng.toFixed(6)} → `}新: ${r.newLat.toFixed(6)}, ${r.newLng.toFixed(6)} <span style="opacity:0.8">(${distText})</span></div>
-              <div style="opacity:0.6; margin-top:2px">高德匹配: ${esc(r.candidateName)}${r.candidateAddress ? ' — ' + esc(r.candidateAddress) : ''}</div>
+              <div style="opacity:0.7; margin-top:2px">${isNew ? '' : `${L('旧: ', 'Old: ')}${r.oldLat.toFixed(6)}, ${r.oldLng.toFixed(6)} → `}${L('新: ', 'New: ')}${r.newLat.toFixed(6)}, ${r.newLng.toFixed(6)} <span style="opacity:0.8">(${distText})</span></div>
+              <div style="opacity:0.6; margin-top:2px">${L('高德匹配: ', 'Amap match: ')}${esc(r.candidateName)}${r.candidateAddress ? ' — ' + esc(r.candidateAddress) : ''}</div>
             </span>
           </label>`
       }
 
       function renderCoordFixResults() {
         if (!coordFixResults.length) {
-          coordFixBody.innerHTML = `<div style="opacity:0.7; padding:8px 0">✅ 所有已检查地点与高德一致，无需修复</div>`
+          coordFixBody.innerHTML = `<div style="opacity:0.7; padding:8px 0">${L('✅ 所有已检查地点与高德一致，无需修复', '✅ All checked places match Amap; no fixes are needed')}</div>`
           return
         }
         coordFixBody.innerHTML = `
-          <div style="opacity:0.75; margin-bottom:4px">发现 ${coordFixResults.length} 个地点坐标可能偏移。应用前请核对——名称匹配不确定的默认不勾选</div>
+          <div style="opacity:0.75; margin-bottom:4px">${L(`发现 ${coordFixResults.length} 个地点坐标可能偏移。应用前请核对——名称匹配不确定的默认不勾选`, `${coordFixResults.length} place coordinate(s) may be offset. Verify them before applying; uncertain name matches are unchecked by default.`)}</div>
           <div id="coord-fix-list">${coordFixResults.map(coordFixRowHtml).join('')}</div>
           <div style="display:flex; gap:8px; margin-top:10px">
-            <button id="coord-fix-apply" class="trek-btn trek-btn--primary" style="flex:1">应用所选</button>
+            <button id="coord-fix-apply" class="trek-btn trek-btn--primary" style="flex:1">${L('应用所选', 'Apply selected')}</button>
           </div>`
         const applyBtn = document.getElementById('coord-fix-apply')
         applyBtn.addEventListener('click', async () => {
           const checked = Array.from(document.querySelectorAll('#coord-fix-list input[type=checkbox]:checked'))
             .map(cb => coordFixResults[Number(cb.dataset.fixIdx)])
-          if (!checked.length) { trek.notify('warning', '请至少选择一个地点'); return }
+          if (!checked.length) { trek.notify('warning', L('请至少选择一个地点', 'Select at least one place')); return }
           applyBtn.disabled = true
-          applyBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">应用中</span>`
+          applyBtn.innerHTML = `<span class="btn-icon">${ICON_LOADER}</span><span class="btn-label">${L('应用中', 'Applying')}</span>`
           try {
             const res = await trek.invoke('/coord-fix', {
               method: 'POST',
@@ -1502,26 +1538,26 @@ body.trek-ui {
               }),
             })
             if (res.ok) {
-              trek.notify('success', `已修复 ${res.updated} 个地点`)
-              if (res.errors && res.errors.length) trek.notify('warning', `${res.errors.length} 个地点更新失败`)
+              trek.notify('success', L(`已修复 ${res.updated} 个地点`, `Fixed ${res.updated} place(s)`))
+              if (res.errors && res.errors.length) trek.notify('warning', L(`${res.errors.length} 个地点更新失败`, `${res.errors.length} place(s) could not be updated`))
               coordFixResults = coordFixResults.filter(r => !checked.includes(r))
               renderCoordFixResults()
             } else {
-              trek.notify('error', res.error || '应用失败')
+              trek.notify('error', res.error || L('应用失败', 'Could not apply fixes'))
               applyBtn.disabled = false
-              applyBtn.innerHTML = '应用所选'
+              applyBtn.innerHTML = L('应用所选', 'Apply selected')
             }
           } catch (e) {
-            trek.notify('error', '请求失败: ' + e.message)
+            trek.notify('error', L('请求失败: ', 'Request failed: ') + e.message)
             applyBtn.disabled = false
-            applyBtn.innerHTML = '应用所选'
+            applyBtn.innerHTML = L('应用所选', 'Apply selected')
           }
         })
       }
 
       // v1.4.0: 批大小（并发数）由服务端按设置里的 coord_scan_concurrency 决定，客户端顺着 nextOffset 循环拉批次
       async function openCoordFix() {
-        if (!tripId) { trek.notify('error', '未检测到当前行程'); return }
+        if (!tripId) { trek.notify('error', L('未检测到当前行程', 'No current trip detected')); return }
         const seq = ++coordScanSeq
         coordFixPanel.style.display = 'block'
         coordFixResults = []
@@ -1530,13 +1566,13 @@ body.trek-ui {
         let cityParam = null   // 第一批探测到的城市，后续批次原样带回，服务端不再重新探测
         try {
           while (true) {
-            coordFixBody.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:8px 0"><span class="btn-icon">${ICON_LOADER}</span> 正在扫描行程地点… ${total !== null ? `(${Math.min(offset, total)}/${total})` : ''}</div>`
+            coordFixBody.innerHTML = `<div style="display:flex; align-items:center; gap:8px; padding:8px 0"><span class="btn-icon">${ICON_LOADER}</span> ${L('正在扫描行程地点…', 'Scanning trip places…')} ${total !== null ? `(${Math.min(offset, total)}/${total})` : ''}</div>`
             let url = '/coord-scan?tripId=' + encodeURIComponent(tripId) + '&offset=' + offset
             if (offset > 0) url += '&city=' + encodeURIComponent(cityParam || '')
             const res = await trek.invoke(url)
             if (seq !== coordScanSeq) return  // 面板被关闭/重新打开，旧扫描作废
             if (!res.ok) {
-              coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">${esc(res.error || '扫描失败')}</div>`
+              coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">${esc(res.error || L('扫描失败', 'Scan failed'))}</div>`
               return
             }
             total = res.total
@@ -1548,7 +1584,7 @@ body.trek-ui {
           renderCoordFixResults()
         } catch (e) {
           if (seq !== coordScanSeq) return
-          coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">请求错误: ${esc(e.message)}</div>`
+          coordFixBody.innerHTML = `<div style="color:var(--trek-danger,#ef4444)">${L('请求错误: ', 'Request error: ')}${esc(e.message)}</div>`
         }
       }
       document.getElementById('btn-coord-fix').addEventListener('click', openCoordFix)

@@ -88,6 +88,7 @@ TREK shows this list to the admin at activation — exactly four permissions, an
 1. Pack: `npx trek-plugin-sdk pack` → `plugin.zip`
 2. TREK → Admin → Plugins → **Upload** → choose the zip
 3. Activate and approve the permissions
+4. In the plugin settings, set **Interface language** to **English** (Simplified Chinese remains the default)
 
 ### 2. Get an Amap key
 
@@ -98,7 +99,7 @@ TREK shows this list to the admin at activation — exactly four permissions, an
 
 ### 3. Use it
 
-1. Open any trip → the **找地方** tab appears in the planner bar
+1. Open any trip → the **Find Places** tab appears in the planner bar
 2. Type a keyword (e.g. 故宫 / 长城 / 西湖) + optional city → Search
 3. **📋 Copy address** → copies full address / coordinates / map link
 4. **➕ Add to trip** → writes into the open trip (coordinates / address / type / website / phone notes in one step)
