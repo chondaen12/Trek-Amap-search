@@ -33,51 +33,51 @@
     {
       "key": "amap_key",
       "scope": "user",
-      "label": "高德 Web 服务 Key",
-      "placeholder": "申请自 console.amap.com（Web服务类型）",
+      "label": "高德 Web 服务 Key / Amap Web Service Key",
+      "placeholder": "申请自 console.amap.com（Web 服务类型）/ Get one at console.amap.com (Web Service)",
       "required": true,
       "secret": true
     },
     {
       "key": "coord_scan_concurrency",
       "scope": "user",
-      "label": "修复坐标：每批并发请求数",
+      "label": "修复坐标：每批并发请求数 / Fix coordinates: requests per batch",
       "input_type": "select",
       "options": [
-        { "value": "1", "label": "1（串行，最稳）" },
+        { "value": "1", "label": "1（串行，最稳 / sequential, most reliable）" },
         { "value": "2", "label": "2" },
-        { "value": "3", "label": "3（默认）" },
+        { "value": "3", "label": "3（默认 / default）" },
         { "value": "4", "label": "4" },
-        { "value": "5", "label": "5（最快，需高德 Key 配额充裕）" }
+        { "value": "5", "label": "5（最快，需高德 Key 配额充裕 / fastest; requires sufficient Amap Key quota）" }
       ],
-      "hint": "数值越大扫描越快，但会同时发更多请求给高德——如果 Key 触发限流就调低",
+      "hint": "数值越大扫描越快，但会同时发更多请求给高德——如果 Key 触发限流就调低 / Higher values scan faster but send more simultaneous requests to Amap; lower this if your Key is rate-limited.",
       "required": false
     },
     {
       "key": "coord_scan_proximity",
       "scope": "user",
-      "label": "修复坐标：优先按原坐标周边搜索",
+      "label": "修复坐标：优先按原坐标周边搜索 / Fix coordinates: search near the original location first",
       "input_type": "select",
       "options": [
-        { "value": "on", "label": "开启（默认）——围绕地点原坐标搜索" },
-        { "value": "off", "label": "关闭——只按名称搜索" }
+        { "value": "on", "label": "开启（默认）——围绕地点原坐标搜索 / On (default) — search around the original location" },
+        { "value": "off", "label": "关闭——只按名称搜索 / Off — search by name only" }
       ],
-      "hint": "防止同名地点（连锁店、跨区同名点）被匹配错——地点已有坐标时围绕原坐标就近搜索",
+      "hint": "防止同名地点（连锁店、跨区同名点）被匹配错——地点已有坐标时围绕原坐标就近搜索 / Helps prevent incorrect matches for places with the same name by searching near an existing coordinate.",
       "required": false
     },
     {
       "key": "coord_scan_radius",
       "scope": "user",
-      "label": "修复坐标：周边搜索半径（米）",
+      "label": "修复坐标：周边搜索半径（米）/ Fix coordinates: nearby-search radius (m)",
       "input_type": "select",
       "options": [
         { "value": "1000", "label": "1000m" },
         { "value": "3000", "label": "3000m" },
-        { "value": "5000", "label": "5000m（默认）" },
+        { "value": "5000", "label": "5000m（默认 / default）" },
         { "value": "10000", "label": "10000m" },
         { "value": "20000", "label": "20000m" }
       ],
-      "hint": "仅在上方开关开启时生效。半径内搜不到匹配结果的地点会跳过，不猜测坐标",
+      "hint": "仅在上方开关开启时生效。半径内搜不到匹配结果的地点会跳过，不猜测坐标 / Applies only when the option above is on. Places without a match in the radius are skipped; coordinates are never guessed.",
       "required": false
     }
   ]
