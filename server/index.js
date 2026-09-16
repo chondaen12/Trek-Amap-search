@@ -351,6 +351,17 @@ module.exports = definePlugin({
   },
 
   routes: [
+    // Expose the user's display-language preference to the sandboxed page.
+    {
+      method: 'GET',
+      path: '/language',
+      auth: true,
+      async handler(req, ctx) {
+        const language = await ctx.settings.get('language')
+        return json({ ok: true, language: language === 'en' ? 'en' : 'zh-CN' })
+      },
+    },
+
     // 检测当前用户是否已配置高德 Key（client 据此显隐引导语）
     {
       method: 'GET',

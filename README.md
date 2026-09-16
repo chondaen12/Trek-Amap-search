@@ -88,6 +88,7 @@ TREK 官方有一个关于中国地图模式的讨论（[#1636](https://github.c
 1. 打包：`npx trek-plugin-sdk pack` → `plugin.zip`
 2. TREK → Admin → Plugins → **Upload** → 选择 zip
 3. 激活并同意权限
+4. 在插件设置的「界面语言 / Interface language」中选择简体中文或 English（默认简体中文）
 
 ### 2. 申请高德 Key
 
